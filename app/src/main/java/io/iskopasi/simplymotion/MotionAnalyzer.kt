@@ -6,27 +6,25 @@ import android.graphics.Rect
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.core.graphics.rotationMatrix
+import io.iskopasi.simplymotion.utils.copy
+import io.iskopasi.simplymotion.utils.diffGrayscaleBitmap
+import io.iskopasi.simplymotion.utils.e
 import java.nio.ByteBuffer
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
-
-data class DetectionData(
-    val detected: Boolean,
-    val detectRect: Rect,
-    val deltaX: Int,
-    val deltaY: Int
-)
+typealias OnAnalyzeResult = (Bitmap?, Rect) -> Unit
 
 class MotionAnalyzer(
-    val width: Int,
-    val height: Int,
-    val listener: (Bitmap, Rect) -> Unit,
+    private val width: Int,
+    private val height: Int,
+    val listener: OnAnalyzeResult,
 ) : ImageAnalysis.Analyzer {
+    var isAllowed = true
+
     private val mtx = rotationMatrix(-90f).apply {
         preScale(1f, -1f)
     }
-
     private var lastEvalTime: Long = 0L
     private var prev: ByteBuffer? = null
     private val detectColor = Color.RED
@@ -43,8 +41,16 @@ class MotionAnalyzer(
     }
     private val workers = 4
     private val pool = Executors.newFixedThreadPool(workers)
+    private val emptyRect = Rect().apply { setEmpty() }
 
     override fun analyze(image: ImageProxy) {
+        if (!isAllowed) {
+            listener(null, emptyRect)
+            image.close()
+
+            return
+        }
+
         val elapsed = System.currentTimeMillis() - lastEvalTime
         if (elapsed < 100L) {
             image.close()
@@ -76,14 +82,14 @@ class MotionAnalyzer(
             val tasks = generateTasks(rotatedBitmap, workers, 1) { src, dst, chunk ->
                 blurMedianTask(src, dst, chunk)
                 blurMedianTask(dst, dst, chunk)
-                adaptiveThresholdTask(dst, dst, chunk, 255 * 255 * 3)
+                adaptiveThresholdTask(dst, dst, chunk, 255 * 255 * 4)
             }
             val results = pool.invokeAll(tasks)
             val finalBitmap = results[0].get()
 
             val xCoefficient = width / finalBitmap.width
             val yCoefficient = height / finalBitmap.height
-            val detectRect = finalBitmap.detect(xCoefficient, yCoefficient, 5)
+            val detectRect = finalBitmap.detect(xCoefficient, yCoefficient, 7)
 
             listener(finalBitmap, detectRect)
         }
@@ -308,6 +314,16 @@ class MotionAnalyzer(
         }
 
         return result / 9
+    }
+
+    fun resume() {
+        "--> Resuming analyzer".e
+        isAllowed = true
+    }
+
+    fun pause() {
+        "--> Pausing analyzer".e
+        isAllowed = false
     }
 }
 

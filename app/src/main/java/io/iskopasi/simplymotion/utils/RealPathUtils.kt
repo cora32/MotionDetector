@@ -1,4 +1,4 @@
-package io.iskopasi.simplymotion
+package io.iskopasi.simplymotion.utils
 
 import android.annotation.SuppressLint
 import android.content.ContentUris

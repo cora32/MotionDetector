@@ -1,4 +1,4 @@
-package io.iskopasi.simplymotion
+package io.iskopasi.simplymotion.utils
 
 import android.content.ContentValues
 import android.content.Context
@@ -15,9 +15,10 @@ import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
 import android.util.Size
+import android.view.WindowManager
 import androidx.camera.core.ImageProxy
 import androidx.core.content.ContextCompat
-import io.iskopasi.simplymotion.RealPathUtil.getRealPath
+import io.iskopasi.simplymotion.utils.RealPathUtil.getRealPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -74,9 +75,23 @@ fun bg(block: suspend (CoroutineScope) -> Unit): Job = CoroutineScope(Dispatcher
     block(this)
 }
 
-fun main(block: suspend CoroutineScope.() -> Unit): Job = CoroutineScope(Dispatchers.Main).launch {
+fun ui(block: suspend CoroutineScope.() -> Unit): Job = CoroutineScope(Dispatchers.Main).launch {
     block(this)
 }
+
+val Context.windowManager: WindowManager?
+    get() = ContextCompat.getSystemService(this, WindowManager::class.java)
+
+val Context.rotation: Int
+    get() {
+        return windowManager!!.defaultDisplay.rotation
+//        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//            display!!.rotation
+//        } else {
+//            windowManager!!.defaultDisplay.rotation
+//        }
+    }
+
 
 val String.e: String
     get() {

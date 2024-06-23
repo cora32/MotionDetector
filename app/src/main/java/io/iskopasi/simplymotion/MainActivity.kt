@@ -8,66 +8,109 @@ import android.os.Bundle
 import android.view.Surface
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.camera.core.AspectRatio
-import androidx.camera.core.Camera
 import androidx.camera.core.CameraInfo
-import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraState
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
-import androidx.camera.core.resolutionselector.AspectRatioStrategy
-import androidx.camera.core.resolutionselector.ResolutionSelector
-import androidx.camera.core.resolutionselector.ResolutionStrategy
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Timer10
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.concurrent.futures.await
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
-import androidx.window.layout.WindowMetricsCalculator
+import io.iskopasi.simplymotion.controllers.MotionDetectorController
+import io.iskopasi.simplymotion.controllers.MotionDetectorEvent
 import io.iskopasi.simplymotion.ui.theme.SimplyMotionTheme
+import io.iskopasi.simplymotion.utils.OrientationListener
+import io.iskopasi.simplymotion.utils.e
+import io.iskopasi.simplymotion.utils.ui
 import kotlinx.coroutines.launch
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 
-class UIController : ViewModel() {
-    var detectRectState by mutableStateOf<Rect?>(Rect())
+
+class UIModel : ViewModel() {
+    var detectRectState by mutableStateOf<Rect?>(null)
+    var isRecording by mutableStateOf(false)
+    var isArmed by mutableStateOf(false)
+    var timerValue by mutableStateOf<String?>(null)
+    var isArming by mutableStateOf(false)
+    var orientation by mutableIntStateOf(0)
 }
 
 class MainActivity : ComponentActivity() {
-    private val controller: UIController by viewModels()
-    private lateinit var cameraExecutor: ExecutorService
-    private var camera: Camera? = null
-    private lateinit var provider: ProcessCameraProvider
-    private var lensFacing: Int = CameraSelector.LENS_FACING_FRONT
-    private val RATIO_4_3_VALUE = 4.0 / 3.0
-    private val RATIO_16_9_VALUE = 16.0 / 9.0
-    private lateinit var preview: androidx.camera.core.Preview
+    private val eventListener: (MotionDetectorEvent) -> Unit = { event ->
+        when (event) {
+            MotionDetectorEvent.ARMED -> {
+                uiModel.isArmed = true
+                uiModel.isArming = false
+            }
+
+            MotionDetectorEvent.DISARMED -> {
+                uiModel.isArmed = false
+            }
+
+            MotionDetectorEvent.VIDEO_START -> uiModel.isRecording = true
+            MotionDetectorEvent.VIDEO_STOP -> {
+                uiModel.isRecording = false
+
+                ui {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+
+            MotionDetectorEvent.TIMER -> {
+                val value = (event.timer!! / 1000L).toInt()
+
+                if (value == 0) {
+                    uiModel.timerValue = null
+                } else {
+                    uiModel.timerValue = value.toString()
+                }
+            }
+        }
+    }
+    private val uiModel: UIModel by viewModels()
+    private var motionDetectorController: MotionDetectorController =
+        MotionDetectorController(eventListener)
+    private var orientationListener: OrientationListener? = null
 
     private val cameraPermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { resultMap ->
@@ -84,21 +127,37 @@ class MainActivity : ComponentActivity() {
         context, Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
 
+    override fun onStart() {
+        super.onStart()
+
+        motionDetectorController.onStart()
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        motionDetectorController.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
-
-        // Initialize our background executor
-        cameraExecutor = Executors.newSingleThreadExecutor()
+        orientationListener?.enable()
     }
 
     override fun onPause() {
         super.onPause()
-
-        cameraExecutor.shutdown()
+        orientationListener?.disable()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        orientationListener = object : OrientationListener(this@MainActivity) {
+            override fun onSimpleOrientationChanged(orientation: Int, currentOrientation: Int) {
+                "---> ORIENT: $orientation".e
+                uiModel.orientation = orientation
+            }
+        }
 
         if (!checkPermissions(this)) {
             cameraPermissionRequest.launch(
@@ -110,10 +169,13 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        enableEdgeToEdge()
+//        enableEdgeToEdge()
 
         // Lock screen brightness
-        window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
 
         val viewfinder = PreviewView(this).apply {
             post {
@@ -125,150 +187,197 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        val imageView = ImageView(this)
 
         lifecycleScope.launch {
-            setupCamera(viewfinder.surfaceProvider, imageView)
+            motionDetectorController.setupCamera(
+                this@MainActivity,
+                viewfinder.surfaceProvider,
+            )
+            { bitmap, detectRect ->
+                if (!detectRect.isEmpty) {
+                    uiModel.detectRectState = detectRect
+
+                    if (motionDetectorController.startVideo()) {
+                        ui {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+                } else {
+                    uiModel.detectRectState = null
+                }
+            }
         }
 
         setContent {
             SimplyMotionTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                            .background(Color.Black)
-                    ) {
-                        AndroidView(
-                            factory = {
-                                viewfinder
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Box(modifier = Modifier
-                            .fillMaxSize()
-                            .drawBehind {
-                                val rect = controller.detectRectState
-
-                                rect?.let {
-                                    drawRect(
-                                        color = Color.Red,
-                                        topLeft = Offset(
-                                            rect.left.toFloat(),
-                                            rect.top.toFloat()
-                                        ),
-                                        size = Size(
-                                            rect
-                                                .width()
-                                                .toFloat(),
-                                            rect
-                                                .height()
-                                                .toFloat()
-                                        ),
-                                        style = Stroke(5.0f)
-                                    )
-                                }
-                            }) {}
-                    }
+                    UIComposable(innerPadding, viewfinder)
                 }
             }
         }
     }
 
-    private suspend fun setupCamera(
-        surfaceProvider: Preview.SurfaceProvider,
-        imageView: ImageView,
-    ) {
-        provider = ProcessCameraProvider.getInstance(this).await()
-        lensFacing = CameraSelector.LENS_FACING_FRONT
+    @Composable
+    private fun UIComposable(innerPadding: PaddingValues, viewfinder: PreviewView) {
+        "---> uiModel.orientation: ${uiModel.orientation}".e
+        val rotation: Float by animateFloatAsState(
+            -uiModel.orientation.toAngle().toFloat(),
+            label = ""
+        )
 
-        val metrics = WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this).bounds
-        val aspect = aspectRatio(metrics.width(), metrics.height())
-        val rotation = ContextCompat.getDisplayOrDefault(this).rotation
-
-        "--> rotation: $rotation".e
-        val cameraProvider = provider
-
-        val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-
-        val resolutionSelectorPreview = ResolutionSelector.Builder()
-            .setAspectRatioStrategy(
-                AspectRatioStrategy(
-                    AspectRatio.RATIO_16_9,
-                    AspectRatioStrategy.FALLBACK_RULE_NONE
-                )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color.Black)
+        ) {
+            AndroidView(
+                factory = {
+                    viewfinder
+                },
+                modifier = Modifier.fillMaxSize()
             )
-//            .setResolutionStrategy(
-//                ResolutionStrategy(
-//                    getMaxSizeFront(this),
-//                    ResolutionStrategy.FALLBACK_RULE_NONE
-//                )
-//            )
-            .build()
-        val resolutionSelectorAnalyze = ResolutionSelector.Builder()
-//            .setAspectRatioStrategy(AspectRatioStrategy(AspectRatio.RATIO_16_9,
-//                AspectRatioStrategy.FALLBACK_RULE_NONE
-//            ))
-            .setResolutionStrategy(
-                ResolutionStrategy(
-                    getMinSizeFront(this),
-                    ResolutionStrategy.FALLBACK_RULE_NONE
-                )
-            )
-            .build()
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .drawBehind {
+                    val rect = uiModel.detectRectState
 
-        // Preview
-        preview = Preview.Builder()
-            // We request aspect ratio but no resolution
-            .setResolutionSelector(resolutionSelectorPreview)
-            // Set initial target rotation
-            .setTargetRotation(rotation)
-            .build()
-
-        // ImageAnalysis
-        val imageAnalyzer = ImageAnalysis.Builder()
-            // We request aspect ratio but no resolution
-            .setResolutionSelector(resolutionSelectorAnalyze)
-            // Set initial target rotation, we will have to call this again if rotation changes
-            // during the lifecycle of this use case
-            .setTargetRotation(Surface.ROTATION_90)
-            .build()
-            // The analyzer can then be assigned to the instance
-            .also {
-                it.setAnalyzer(cameraExecutor, MotionAnalyzer(metrics.width(), metrics.height())
-                { bitmap, detectRect ->
-                    bitmap.recycle()
-
-                    if (!detectRect.isEmpty) {
-                        controller.detectRectState = detectRect
-                    } else {
-                        controller.detectRectState = null
+                    rect?.let {
+                        drawRect(
+                            color = Color.Red,
+                            topLeft = Offset(
+                                rect.left.toFloat(),
+                                rect.top.toFloat()
+                            ),
+                            size = Size(
+                                rect
+                                    .width()
+                                    .toFloat(),
+                                rect
+                                    .height()
+                                    .toFloat()
+                            ),
+                            style = Stroke(5.0f)
+                        )
                     }
                 })
-            }
-
-        // Must unbind the use-cases before rebinding them
-        provider.unbindAll()
-
-
-        // Must remove observers from the previous camera instance
-        if (camera != null) {
-            camera!!.cameraInfo.cameraState.removeObservers(this)
-        }
-
-        try {
-            // A variable number of use-cases can be passed here -
-            // camera provides access to CameraControl & CameraInfo
-            camera = cameraProvider.bindToLifecycle(
-                this, cameraSelector, preview, imageAnalyzer
+            if (uiModel.isRecording) Box(
+                modifier = Modifier
+                    .padding(top = 32.dp, end = 32.dp)
+                    .size(32.dp)
+                    .clip(
+                        RoundedCornerShape(32.dp)
+                    )
+                    .background(Color.Red)
+                    .align(Alignment.TopEnd)
             )
+            if (uiModel.timerValue != null) Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = .5f))
+            ) {
+                Crossfade(
+                    targetState = uiModel.timerValue, label = uiModel.timerValue.toString(),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                ) {
+                    it?.let {
+                        Text(
+                            modifier = Modifier
+                                .rotate(rotation),
+                            text = it,
+                            color = Color.White,
+                            fontSize = 32.sp
+                        )
+                    }
 
-            // Attach the viewfinder's surface provider to preview use case
-            preview.setSurfaceProvider(surfaceProvider)
-//            observeCameraState(camera!!.cameraInfo)
-        } catch (exc: Exception) {
-            "Use case binding failed".e
+                }
+            }
+            if (uiModel.isArmed) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.0f),
+                                    Color.Black.copy(alpha = 0.2f),
+                                    Color.Black.copy(alpha = 0.3f),
+                                )
+                            )
+                        )
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 72.dp, top = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    IconButton(
+                        modifier = Modifier
+                            .size(48.dp),
+
+                        onClick = {
+                            motionDetectorController.disarm()
+                        }) {
+                        Icon(
+                            Icons.Rounded.Clear,
+                            "Disarm",
+                            modifier = Modifier
+                                .size(64.dp)
+                                .rotate(rotation)
+                        )
+                    }
+                }
+            } else {
+                if (!uiModel.isArming) Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.0f),
+                                    Color.Black.copy(alpha = 0.2f),
+                                    Color.Black.copy(alpha = 0.3f),
+                                )
+                            )
+                        )
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 72.dp, top = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    IconButton(
+                        modifier = Modifier
+                            .size(48.dp),
+
+                        onClick = {
+                            motionDetectorController.arm()
+                        }) {
+                        Icon(
+                            Icons.Rounded.Security,
+                            "Arm",
+                            modifier = Modifier
+                                .size(64.dp)
+                                .rotate(rotation)
+                        )
+                    }
+
+                    IconButton(
+                        modifier = Modifier
+                            .size(48.dp),
+
+                        onClick = {
+                            motionDetectorController.armDelayed(10000L)
+                            uiModel.isArming = true
+                        }) {
+                        Icon(
+                            Icons.Rounded.Timer10,
+                            "Arm in 10 seconds",
+                            modifier = Modifier
+                                .size(64.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -393,12 +502,12 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
 
-    private fun aspectRatio(width: Int, height: Int): Int {
-        val previewRatio = max(width, height).toDouble() / min(width, height)
-        if (abs(previewRatio - RATIO_4_3_VALUE) <= abs(previewRatio - RATIO_16_9_VALUE)) {
-            return AspectRatio.RATIO_4_3
-        }
-        return AspectRatio.RATIO_16_9
-    }
+private fun Int.toAngle() = when (this) {
+    Surface.ROTATION_0 -> 180
+    Surface.ROTATION_90 -> 0
+    Surface.ROTATION_180 -> 90
+    Surface.ROTATION_270 -> 270
+    else -> 0
 }
