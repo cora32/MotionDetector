@@ -61,7 +61,6 @@ import io.iskopasi.simplymotion.controllers.MotionDetectorController
 import io.iskopasi.simplymotion.controllers.MotionDetectorEvent
 import io.iskopasi.simplymotion.ui.theme.SimplyMotionTheme
 import io.iskopasi.simplymotion.utils.OrientationListener
-import io.iskopasi.simplymotion.utils.e
 import io.iskopasi.simplymotion.utils.ui
 import kotlinx.coroutines.launch
 
@@ -92,7 +91,7 @@ class MainActivity : ComponentActivity() {
                 uiModel.isRecording = false
 
                 ui {
-                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    brightnessDown()
                 }
             }
 
@@ -154,7 +153,6 @@ class MainActivity : ComponentActivity() {
 
         orientationListener = object : OrientationListener(this@MainActivity) {
             override fun onSimpleOrientationChanged(orientation: Int, currentOrientation: Int) {
-                "---> ORIENT: $orientation".e
                 uiModel.orientation = orientation
             }
         }
@@ -187,6 +185,7 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         lifecycleScope.launch {
             motionDetectorController.setupCamera(
@@ -198,9 +197,7 @@ class MainActivity : ComponentActivity() {
                     uiModel.detectRectState = detectRect
 
                     if (motionDetectorController.startVideo()) {
-                        ui {
-                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        }
+                        brightnessUp()
                     }
                 } else {
                     uiModel.detectRectState = null
@@ -217,11 +214,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun brightnessDown() = ui {
+        window.attributes = window.attributes.apply {
+            dimAmount = 0.9f
+            screenBrightness = 0f
+        }
+    }
+
+    private fun brightnessUp() = ui {
+        window.attributes = window.attributes.apply {
+            dimAmount = 0.5f
+            screenBrightness = 0.5f
+        }
+    }
+
     @Composable
     private fun UIComposable(innerPadding: PaddingValues, viewfinder: PreviewView) {
-        "---> uiModel.orientation: ${uiModel.orientation}".e
         val rotation: Float by animateFloatAsState(
-            -uiModel.orientation.toAngle().toFloat(),
+            uiModel.orientation.toAngle().toFloat(),
             label = ""
         )
 
@@ -374,6 +384,7 @@ class MainActivity : ComponentActivity() {
                             "Arm in 10 seconds",
                             modifier = Modifier
                                 .size(64.dp)
+                                .rotate(rotation)
                         )
                     }
                 }
@@ -505,9 +516,9 @@ class MainActivity : ComponentActivity() {
 }
 
 private fun Int.toAngle() = when (this) {
-    Surface.ROTATION_0 -> 180
+    Surface.ROTATION_0 -> 0
     Surface.ROTATION_90 -> 0
-    Surface.ROTATION_180 -> 90
+    Surface.ROTATION_180 -> -90
     Surface.ROTATION_270 -> 270
     else -> 0
 }
