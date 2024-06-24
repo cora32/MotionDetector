@@ -36,6 +36,7 @@ enum class MotionDetectorEvent(var timer: Long? = null) {
 class MotionDetectorController(
     val
     eventListener: (MotionDetectorEvent) -> Unit,
+    private val sensitivity: Int,
 ) {
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private lateinit var provider: ProcessCameraProvider
@@ -130,7 +131,7 @@ class MotionDetectorController(
             .build()
             // The analyzer can then be assigned to the instance
             .also {
-                motionAnalyzer = MotionAnalyzer(metrics.width(), metrics.height())
+                motionAnalyzer = MotionAnalyzer(metrics.width(), metrics.height(), sensitivity)
                 { bitmap, detectRect ->
                     onAnalyzeResult(bitmap, detectRect)
                 }
@@ -220,5 +221,9 @@ class MotionDetectorController(
             }
 
         }.start()
+    }
+
+    fun setSensitivity(sensitivity: Int) {
+        motionAnalyzer?.setSensitivity(sensitivity)
     }
 }

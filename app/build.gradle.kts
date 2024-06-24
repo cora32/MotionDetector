@@ -77,9 +77,9 @@ dependencies {
     implementation(libs.androidx.camera.video)
     implementation(libs.androidx.material.icons.extended)
 
-
     // Concurrent library for asynchronous coroutines
     implementation(libs.androidx.concurrent.futures.ktx)
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.androidx.window)
     implementation(libs.glide)

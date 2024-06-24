@@ -68,10 +68,9 @@ class RecorderController(
                             finalize()
 
                             val msg = if (!event.hasError()) {
-                                "Video capture succeeded: ${event.outputResults.outputUri}".e
-
+                                "Video saved to gallery: ${event.outputResults.outputUri}".e
                             } else {
-                                "err: ${event.error}".e
+                                "Failed to save video: ${event.error}".e
                             }
 
                             Toast.makeText(context, msg, Toast.LENGTH_SHORT)

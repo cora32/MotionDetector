@@ -8,6 +8,7 @@ import androidx.camera.core.ImageProxy
 import androidx.core.graphics.rotationMatrix
 import io.iskopasi.simplymotion.utils.copy
 import io.iskopasi.simplymotion.utils.diffGrayscaleBitmap
+import io.iskopasi.simplymotion.utils.e
 import java.nio.ByteBuffer
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -19,7 +20,8 @@ typealias OnAnalyzeResult = (Bitmap?, Rect) -> Unit
 class MotionAnalyzer(
     private val width: Int,
     private val height: Int,
-    val listener: OnAnalyzeResult,
+    var threshold: Int,
+    val listener: OnAnalyzeResult
 ) : ImageAnalysis.Analyzer {
     var isAllowed = true
 
@@ -96,15 +98,15 @@ class MotionAnalyzer(
             val tasks = generateTasks(rotatedBitmap, workers, 1) { src, dst, chunk ->
                 blurMedianTask(src, dst, chunk)
                 blurMedianTask(dst, dst, chunk)
-                adaptiveThresholdTask(dst, dst, chunk, 255 * 255 * 4)
+                adaptiveThresholdTask(dst, dst, chunk, 255 * 255 * 100)
             }
             val results = pool.invokeAll(tasks)
             val finalBitmap = results[0].get()
 
-            val borderOffset = 10
+            val borderOffset = 4
             val xCoefficient = (width - (borderOffset * 2)) / finalBitmap.width
             val yCoefficient = (height - (borderOffset * 2)) / finalBitmap.height
-            val detectRect = finalBitmap.detect(xCoefficient, yCoefficient, 8, borderOffset)
+            val detectRect = finalBitmap.detect(xCoefficient, yCoefficient, threshold, borderOffset)
 
             listener(finalBitmap, detectRect)
         }
@@ -231,7 +233,7 @@ class MotionAnalyzer(
 
         for (x in chunk.left until chunk.right) {
             for (y in chunk.top until chunk.bottom) {
-                val threshold = newSource.weightedSum(x, y) - 255 * 255 * 100
+                val threshold = newSource.weightedSum(x, y) - constant
                 val pixel = if (newSource.getPixel(x, y) > threshold) detectColor else Color.BLACK
 
                 dst.setPixel(x, y, pixel)
@@ -315,6 +317,11 @@ class MotionAnalyzer(
 
     fun pause() {
         isAllowed = false
+    }
+
+    fun setSensitivity(threshold: Int) {
+        this.threshold = threshold
+        "threshold: $threshold".e
     }
 }
 

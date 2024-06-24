@@ -3,16 +3,14 @@ package io.iskopasi.simplymotion
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Rect
 import android.os.Bundle
 import android.view.Surface
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.camera.core.CameraInfo
@@ -21,98 +19,77 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Timer10
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.lifecycleScope
-import io.iskopasi.simplymotion.controllers.MotionDetectorController
-import io.iskopasi.simplymotion.controllers.MotionDetectorEvent
 import io.iskopasi.simplymotion.ui.theme.SimplyMotionTheme
-import io.iskopasi.simplymotion.utils.OrientationListener
-import io.iskopasi.simplymotion.utils.ui
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-class UIModel : ViewModel() {
-    var bitmap by mutableStateOf<Bitmap?>(null)
-    var detectRectState by mutableStateOf<Rect?>(null)
-    var isRecording by mutableStateOf(false)
-    var isArmed by mutableStateOf(false)
-    var timerValue by mutableStateOf<String?>(null)
-    var isArming by mutableStateOf(false)
-    var orientation by mutableIntStateOf(0)
-}
 
 class MainActivity : ComponentActivity() {
-    private val eventListener: (MotionDetectorEvent) -> Unit = { event ->
-        when (event) {
-            MotionDetectorEvent.ARMED -> {
-                uiModel.isArmed = true
-                uiModel.isArming = false
-            }
-
-            MotionDetectorEvent.DISARMED -> {
-                uiModel.isArmed = false
-            }
-
-            MotionDetectorEvent.VIDEO_START -> uiModel.isRecording = true
-            MotionDetectorEvent.VIDEO_STOP -> {
-                uiModel.isRecording = false
-
-                ui {
-                    brightnessDown()
-                }
-            }
-
-            MotionDetectorEvent.TIMER -> {
-                val value = (event.timer!! / 1000L).toInt()
-
-                if (value == 0) {
-                    uiModel.timerValue = null
-                } else {
-                    uiModel.timerValue = value.toString()
-                }
-            }
-        }
-    }
+    private lateinit var drawerState: DrawerState
+    private lateinit var scope: CoroutineScope
+    private lateinit var focusManager: FocusManager
     private val uiModel: UIModel by viewModels()
-    private var motionDetectorController: MotionDetectorController =
-        MotionDetectorController(eventListener)
-    private var orientationListener: OrientationListener? = null
-
     private val cameraPermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { resultMap ->
             if (resultMap.values.all { it }) {
@@ -128,36 +105,8 @@ class MainActivity : ComponentActivity() {
         context, Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
 
-    override fun onStart() {
-        super.onStart()
-
-        motionDetectorController.onStart()
-    }
-
-    override fun onStop() {
-        super.onStop()
-
-        motionDetectorController.onStop()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        orientationListener?.enable()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        orientationListener?.disable()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        orientationListener = object : OrientationListener(this@MainActivity) {
-            override fun onSimpleOrientationChanged(orientation: Int, currentOrientation: Int) {
-                uiModel.orientation = currentOrientation
-            }
-        }
 
         if (!checkPermissions(this)) {
             cameraPermissionRequest.launch(
@@ -169,7 +118,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        enableEdgeToEdge()
+//        enableEdgeToEdge()
 
         window.setFlags(
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
@@ -190,45 +139,110 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        lifecycleScope.launch {
-            motionDetectorController.setupCamera(
-                this@MainActivity,
-                viewfinder.surfaceProvider,
-            )
-            { bitmap, detectRect ->
-//                uiModel.bitmap = bitmap
-                if (!detectRect.isEmpty) {
-                    uiModel.detectRectState = detectRect
-
-                    if (motionDetectorController.startVideo()) {
-                        brightnessUp()
-                    }
-                } else {
-                    uiModel.detectRectState = null
-                }
-            }
-        }
+        lifecycle.removeObserver(uiModel)
+        lifecycle.addObserver(uiModel)
+        uiModel.setupCamera(this, viewfinder.surfaceProvider)
 
         setContent {
+            drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+            scope = rememberCoroutineScope()
+            focusManager = LocalFocusManager.current
+
+            BackHandler {
+                closeDrawer()
+            }
+
             SimplyMotionTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    UIComposable(innerPadding, viewfinder)
+                Scaffold(modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            closeDrawer()
+                        }
+                    }) { innerPadding ->
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                        ModalNavigationDrawer(
+                            drawerState = drawerState,
+                            drawerContent = {
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                    MenuComposable()
+                                }
+                            },
+                        ) {
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                UIComposable(
+                                    innerPadding,
+                                    viewfinder
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    private fun brightnessDown() = ui {
-        window.attributes = window.attributes.apply {
-            dimAmount = 0.9f
-            screenBrightness = 0f
-        }
+    private fun closeDrawer() {
+        if (drawerState.isOpen) scope.launch { drawerState.close() }
+        focusManager.clearFocus(true)
     }
 
-    private fun brightnessUp() = ui {
-        window.attributes = window.attributes.apply {
-            dimAmount = 0.5f
-            screenBrightness = 0.5f
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Composable
+    private fun MenuComposable() {
+        var sensitivityTF by rememberSaveable {
+            mutableStateOf(uiModel.getSensitivity().toString())
+        }
+        val keyboardController = LocalSoftwareKeyboardController.current
+
+        Box(
+            modifier = Modifier
+                .background(Color(0xFF071932))
+                .fillMaxHeight()
+                .width(250.dp)
+                .padding(vertical = 64.dp, horizontal = 8.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        closeDrawer()
+                    }
+                }
+        ) {
+            Column() {
+                OutlinedTextField(
+                    value = sensitivityTF,
+                    singleLine = true,
+                    label = { Text("Threshold:", fontSize = 13.sp) },
+                    colors = OutlinedTextFieldDefaults.colors(
+//                        focusedContainerColor = Color.White,
+//                        unfocusedContainerColor = Color.White,
+//                        disabledContainerColor = Color.White
+                    ),
+                    onValueChange = {
+                        if (it.isNotEmpty()) {
+                            sensitivityTF = it
+                            uiModel.saveSensitivity(it.toInt())
+                        } else {
+                            sensitivityTF = "0"
+                            uiModel.saveSensitivity(0)
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }
+                    ),
+//                    modifier = Modifier
+//                        .onFocusEvent {
+//                            it.hasFocus
+//                        }
+//                        .onFocusChanged {
+////                        if(!it.hasFocus) {
+////                            keyboardController?.hide()
+////                        }
+//                    }
+                )
+            }
         }
     }
 
@@ -244,6 +258,11 @@ class MainActivity : ComponentActivity() {
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(Color.Black)
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        closeDrawer()
+                    }
+                }
         ) {
             AndroidView(
                 factory = {
@@ -285,14 +304,46 @@ class MainActivity : ComponentActivity() {
                 })
             if (uiModel.isRecording) Box(
                 modifier = Modifier
-                    .padding(top = 32.dp, end = 32.dp)
+                    .padding(top = 16.dp, end = 32.dp)
                     .size(32.dp)
                     .clip(
                         RoundedCornerShape(32.dp)
                     )
-                    .background(Color.Red)
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopStart)
             )
+            Box(
+                modifier = Modifier
+                    .height(120.dp)
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.3f),
+                                Color.Black.copy(alpha = 0.2f),
+                                Color.Black.copy(alpha = 0.0f),
+                            )
+                        )
+                    )
+            ) {
+                IconButton(
+                    modifier = Modifier
+                        .padding(top = 56.dp, end = 16.dp)
+                        .size(48.dp)
+                        .align(Alignment.TopEnd),
+
+                    onClick = {
+                        scope.launch { drawerState.open() }
+                    }) {
+                    Icon(
+                        Icons.Rounded.Menu,
+                        "Disarm",
+                        modifier = Modifier
+                            .size(64.dp)
+                            .rotate(rotation),
+                        tint = Color.White.copy(alpha = 0.7f)
+                    )
+                }
+            }
             if (uiModel.timerValue != null) Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -338,14 +389,15 @@ class MainActivity : ComponentActivity() {
                             .size(48.dp),
 
                         onClick = {
-                            motionDetectorController.disarm()
+                            uiModel.disarm()
                         }) {
                         Icon(
                             Icons.Rounded.Clear,
                             "Disarm",
                             modifier = Modifier
                                 .size(64.dp)
-                                .rotate(rotation)
+                                .rotate(rotation),
+                            tint = Color.White.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -372,14 +424,15 @@ class MainActivity : ComponentActivity() {
                             .size(48.dp),
 
                         onClick = {
-                            motionDetectorController.arm()
+                            uiModel.arm()
                         }) {
                         Icon(
                             Icons.Rounded.Security,
                             "Arm",
                             modifier = Modifier
                                 .size(64.dp)
-                                .rotate(rotation)
+                                .rotate(rotation),
+                            tint = Color.White.copy(alpha = 0.7f)
                         )
                     }
 
@@ -388,7 +441,7 @@ class MainActivity : ComponentActivity() {
                             .size(48.dp),
 
                         onClick = {
-                            motionDetectorController.armDelayed(10000L)
+                            uiModel.armDelayed(10000L)
                             uiModel.isArming = true
                         }) {
                         Icon(
@@ -396,7 +449,8 @@ class MainActivity : ComponentActivity() {
                             "Arm in 10 seconds",
                             modifier = Modifier
                                 .size(64.dp)
-                                .rotate(rotation)
+                                .rotate(rotation),
+                            tint = Color.White.copy(alpha = 0.7f)
                         )
                     }
                 }
