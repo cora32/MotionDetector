@@ -8,10 +8,11 @@ import androidx.camera.core.ImageProxy
 import androidx.core.graphics.rotationMatrix
 import io.iskopasi.simplymotion.utils.copy
 import io.iskopasi.simplymotion.utils.diffGrayscaleBitmap
-import io.iskopasi.simplymotion.utils.e
 import java.nio.ByteBuffer
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
+import kotlin.math.exp
+import kotlin.math.pow
 
 typealias OnAnalyzeResult = (Bitmap?, Rect) -> Unit
 
@@ -29,19 +30,32 @@ class MotionAnalyzer(
     private var prev: ByteBuffer? = null
     private val detectColor = Color.RED
     private val offset = intArrayOf(-1, 0, 1)
-    private val gaussKernel: Array<Array<Float>> = Array(3) {
-        arrayOf(1 / 16f, 1 / 8f, 1 / 16f)
-        arrayOf(1 / 8f, 1 / 4f, 1 / 8f)
-        arrayOf(1 / 16f, 1 / 8f, 1 / 16f)
-    }
-    private val gaussKernelInt: Array<Array<Int>> = Array(3) {
-        arrayOf(1, 2, 1)
-        arrayOf(2, 4, 2)
-        arrayOf(1, 2, 1)
+    private val verticalSums = mutableListOf<Int>()
+    private val horizontalSums = mutableListOf<Int>()
+    private val gaussKernel2: Array<Array<Float>> by lazy {
+        Array(3) {
+            gaussRow(it)
+        }
     }
     private val workers = 4
     private val pool = Executors.newFixedThreadPool(workers)
     private val emptyRect = Rect().apply { setEmpty() }
+    private val kSize = 9
+    private val alpha = 1f
+    private val sigma = 0.3 * ((kSize - 1) * 0.5 - 1) + 0.8
+
+    private fun gaussRow(index: Int): Array<Float> {
+        val result = Array(3) { 0f }
+
+        for (i in 0 until 3) {
+            val up = -(i + index * 3 - (kSize - 1) / 2.0).pow(2.0)
+            val down = (2.0 * sigma.pow(2.0))
+
+            result[i] = alpha * exp(up / down).toFloat()
+        }
+
+        return result
+    }
 
     override fun analyze(image: ImageProxy) {
         if (!isAllowed) {
@@ -87,9 +101,10 @@ class MotionAnalyzer(
             val results = pool.invokeAll(tasks)
             val finalBitmap = results[0].get()
 
-            val xCoefficient = width / finalBitmap.width
-            val yCoefficient = height / finalBitmap.height
-            val detectRect = finalBitmap.detect(xCoefficient, yCoefficient, 7)
+            val borderOffset = 10
+            val xCoefficient = (width - (borderOffset * 2)) / finalBitmap.width
+            val yCoefficient = (height - (borderOffset * 2)) / finalBitmap.height
+            val detectRect = finalBitmap.detect(xCoefficient, yCoefficient, 8, borderOffset)
 
             listener(finalBitmap, detectRect)
         }
@@ -193,9 +208,11 @@ class MotionAnalyzer(
     }
 
     private fun blurMedianTask(src: Bitmap, dst: Bitmap, chunk: Rect): Bitmap {
+        val pixels = IntArray(size = 9)
+
         for (x in chunk.left until chunk.right) {
             for (y in chunk.top until chunk.bottom) {
-                val pixel = src.medianPixel(x, y)
+                val pixel = src.medianPixel(x, y, pixels)
 
                 dst.setPixel(x, y, pixel)
             }
@@ -214,8 +231,8 @@ class MotionAnalyzer(
 
         for (x in chunk.left until chunk.right) {
             for (y in chunk.top until chunk.bottom) {
-                val threshold = newSource.weightedSum(x, y) - constant
-                val pixel = if (newSource.getPixel(x, y) > threshold) Color.BLACK else detectColor
+                val threshold = newSource.weightedSum(x, y) - 255 * 255 * 100
+                val pixel = if (newSource.getPixel(x, y) > threshold) detectColor else Color.BLACK
 
                 dst.setPixel(x, y, pixel)
             }
@@ -225,27 +242,19 @@ class MotionAnalyzer(
         return dst
     }
 
-    private fun Bitmap.adaptiveThreshold(): Bitmap {
-        val result = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888)
+    private fun Bitmap.detect(
+        xCoefficient: Int,
+        yCoefficient: Int,
+        threshold: Int,
+        offset: Int
+    ): Rect {
+        verticalSums.clear()
+        horizontalSums.clear()
 
-        for (x in 1 until getWidth() - 1) {
-            for (y in 1 until getHeight() - 1) {
-                val threshold = weightedSum(x, y) - 255 * 255 * 2
-                val pixel = if (getPixel(x, y) > threshold) Color.BLACK else detectColor
-
-                result.setPixel(x, y, pixel)
-            }
-        }
-
-        return result
-    }
-
-    private fun Bitmap.detect(xCoefficient: Int, yCoefficient: Int, threshold: Int): Rect {
-        val verticalSums = mutableListOf<Int>()
-        for (x in (5..<width - 5)) {
+        for (x in (offset..<width - offset)) {
             var accumulator = 0
 
-            for (y in (5..<height - 5)) {
+            for (y in (offset..<height - offset)) {
                 if (getPixel(x, y) == detectColor) {
                     accumulator++
                 }
@@ -254,11 +263,10 @@ class MotionAnalyzer(
             verticalSums.add(accumulator)
         }
 
-        val horizontalSums = mutableListOf<Int>()
-        for (y in (5..<height - 5)) {
+        for (y in (offset..<height - offset)) {
             var accumulator = 0
 
-            for (x in (5..<width - 5)) {
+            for (x in (offset..<width - offset)) {
                 if (getPixel(x, y) == detectColor) {
                     accumulator++
                 }
@@ -268,61 +276,44 @@ class MotionAnalyzer(
         }
 
         return Rect(
-            verticalSums.indexOfFirst { it > threshold } * xCoefficient,
-            horizontalSums.indexOfFirst { it > threshold } * yCoefficient,
-            verticalSums.indexOfLast { it > threshold } * xCoefficient,
-            horizontalSums.indexOfLast { it > threshold } * yCoefficient
+            (verticalSums.indexOfFirst { it > threshold } + offset) * xCoefficient,
+            (horizontalSums.indexOfFirst { it > threshold } + offset) * yCoefficient,
+            (verticalSums.indexOfLast { it > threshold } + offset) * xCoefficient,
+            (horizontalSums.indexOfLast { it > threshold } + offset) * yCoefficient
         )
     }
 
-    private fun Bitmap.blurMedian(): Bitmap {
-        val result = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888)
-
-        for (x in 1 until getWidth() - 1) {
-            for (y in 1 until getHeight() - 1) {
-                val pixel = medianPixel(x, y)
-
-                result.setPixel(x, y, pixel)
-            }
-        }
-
-        return result
-    }
-
-    private fun Bitmap.medianPixel(x: Int, y: Int): Int {
-        val result = IntArray(size = 9)
+    private fun Bitmap.medianPixel(x: Int, y: Int, pixels: IntArray): Int {
         var index = 0
 
         for (i in offset) {
             for (j in offset) {
-                result[index++] = getPixel(x + i, y + j)
+                pixels[index++] = getPixel(x + i, y + j)
             }
         }
-        result.sort()
+        pixels.sort()
 
-        return result[4]
+        return pixels[4]
     }
 
     private fun Bitmap.weightedSum(x: Int, y: Int): Int {
-        var result = 0
+        var result = 0f
 
         for (i in offset) {
             for (j in offset) {
-//            result += getPixel(x + i, y + j) * gaussKernelInt[i + 1][j + 1]
-                result += getPixel(x + i, y + j)
+                result += getPixel(x + i, y + j) * gaussKernel2[i + 1][j + 1]
+//                result += getPixel(x + i, y + j)
             }
         }
 
-        return result / 9
+        return (result / 9).toInt()
     }
 
     fun resume() {
-        "--> Resuming analyzer".e
         isAllowed = true
     }
 
     fun pause() {
-        "--> Pausing analyzer".e
         isAllowed = false
     }
 }

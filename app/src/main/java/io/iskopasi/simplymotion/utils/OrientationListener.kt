@@ -12,17 +12,17 @@ abstract class OrientationListener(
 ) : OrientationEventListener(ctx) {
     @Volatile
     private var defaultScreenOrientation = CONFIGURATION_ORIENTATION_UNDEFINED
-    var prevOrientation: Int = ORIENTATION_UNKNOWN
+    private var prevOrientation: Int = ORIENTATION_UNKNOWN
     private val lock = ReentrantLock(true)
     override fun onOrientationChanged(orientation: Int) {
         var currentOrientation = ORIENTATION_UNKNOWN
         if (orientation >= 330 || orientation < 30) {
             currentOrientation = Surface.ROTATION_0
-        } else if (orientation >= 60 && orientation < 120) {
+        } else if (orientation in 60..119) {
             currentOrientation = Surface.ROTATION_90
-        } else if (orientation >= 150 && orientation < 210) {
+        } else if (orientation in 150..209) {
             currentOrientation = Surface.ROTATION_180
-        } else if (orientation >= 240 && orientation < 300) {
+        } else if (orientation in 240..299) {
             currentOrientation = Surface.ROTATION_270
         }
 

@@ -3,6 +3,7 @@ package io.iskopasi.simplymotion
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.Rect
 import android.os.Bundle
 import android.view.Surface
@@ -11,6 +12,7 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.camera.core.CameraInfo
@@ -64,8 +66,8 @@ import io.iskopasi.simplymotion.utils.OrientationListener
 import io.iskopasi.simplymotion.utils.ui
 import kotlinx.coroutines.launch
 
-
 class UIModel : ViewModel() {
+    var bitmap by mutableStateOf<Bitmap?>(null)
     var detectRectState by mutableStateOf<Rect?>(null)
     var isRecording by mutableStateOf(false)
     var isArmed by mutableStateOf(false)
@@ -153,7 +155,7 @@ class MainActivity : ComponentActivity() {
 
         orientationListener = object : OrientationListener(this@MainActivity) {
             override fun onSimpleOrientationChanged(orientation: Int, currentOrientation: Int) {
-                uiModel.orientation = orientation
+                uiModel.orientation = currentOrientation
             }
         }
 
@@ -167,13 +169,15 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-//        enableEdgeToEdge()
+        enableEdgeToEdge()
 
-        // Lock screen brightness
         window.setFlags(
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
+
+        // Lock screen brightness
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         val viewfinder = PreviewView(this).apply {
             post {
@@ -185,7 +189,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         lifecycleScope.launch {
             motionDetectorController.setupCamera(
@@ -193,6 +196,7 @@ class MainActivity : ComponentActivity() {
                 viewfinder.surfaceProvider,
             )
             { bitmap, detectRect ->
+//                uiModel.bitmap = bitmap
                 if (!detectRect.isEmpty) {
                     uiModel.detectRectState = detectRect
 
@@ -247,6 +251,14 @@ class MainActivity : ComponentActivity() {
                 },
                 modifier = Modifier.fillMaxSize()
             )
+//            uiModel.bitmap?.let {
+//                Image(
+//                    bitmap = it.asImageBitmap(),
+//                    contentDescription = "",
+//                    modifier = Modifier.fillMaxSize(),
+//                    contentScale = ContentScale.FillBounds
+//                )
+//            }
             Box(modifier = Modifier
                 .fillMaxSize()
                 .drawBehind {
@@ -517,8 +529,8 @@ class MainActivity : ComponentActivity() {
 
 private fun Int.toAngle() = when (this) {
     Surface.ROTATION_0 -> 0
-    Surface.ROTATION_90 -> 0
-    Surface.ROTATION_180 -> -90
-    Surface.ROTATION_270 -> 270
+    Surface.ROTATION_90 -> -90
+    Surface.ROTATION_180 -> 180
+    Surface.ROTATION_270 -> 90
     else -> 0
 }
