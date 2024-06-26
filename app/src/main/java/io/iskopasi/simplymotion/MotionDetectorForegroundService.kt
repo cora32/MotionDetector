@@ -15,6 +15,7 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.coroutineScope
 import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.controllers.MDCommand
+import io.iskopasi.simplymotion.controllers.MDEvent
 import io.iskopasi.simplymotion.utils.CommunicatorCallback
 import io.iskopasi.simplymotion.utils.ServiceCommunicator
 import io.iskopasi.simplymotion.utils.e
@@ -55,6 +56,12 @@ class MotionDetectorForegroundService : LifecycleService() {
 
             MDCommand.SET_THRESHOLD.name -> {
                 mdCameraController.setThreshold(obj as Int)
+            }
+
+            MDCommand.REQUEST_STATE.name -> {
+                if (mdCameraController.isArmed) {
+                    serviceCommunicator.sendMsg(MDEvent.ARMED.name, null)
+                }
             }
         }
     }

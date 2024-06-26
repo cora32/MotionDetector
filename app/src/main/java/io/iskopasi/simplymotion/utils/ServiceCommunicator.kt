@@ -9,6 +9,7 @@ import android.os.Looper
 import android.os.Message
 import android.os.Messenger
 import android.os.RemoteException
+import androidx.activity.ComponentActivity
 import io.iskopasi.simplymotion.utils.ServiceCommunicator.Companion.STRING_KEY
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +80,10 @@ class ServiceCommunicator(val tag: String, callback: CommunicatorCallback) {
 
     fun onBind(): IBinder? {
         return Messenger(handler).binder
+    }
+
+    fun unbindService(context: ComponentActivity) {
+        context.unbindService(serviceConnection)
     }
 }
 

@@ -16,6 +16,7 @@ import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
 import android.util.Size
+import android.view.Surface
 import android.view.WindowManager
 import androidx.camera.core.ImageProxy
 import androidx.core.content.ContextCompat
@@ -287,4 +288,12 @@ private operator fun Bitmap.minus(bitmap2: Bitmap): Bitmap {
     }
 
     return result
+}
+
+fun Int.toRotation() = when (this) {
+    Surface.ROTATION_0 -> 0
+    Surface.ROTATION_90 -> -90
+    Surface.ROTATION_180 -> 180
+    Surface.ROTATION_270 -> 90
+    else -> 0
 }

@@ -82,6 +82,13 @@ dependencies {
     implementation(libs.androidx.concurrent.futures.ktx)
     implementation(libs.androidx.datastore.preferences)
 
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
+    // Jetpack Compose Integration
+    implementation(libs.androidx.navigation.compose)
+
     implementation(libs.androidx.window)
     implementation(libs.glide)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
 }

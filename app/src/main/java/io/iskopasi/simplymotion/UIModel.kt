@@ -88,6 +88,10 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
         }
     }
 
+    init {
+        serviceCommunicator.sendMsg(MDCommand.REQUEST_STATE.name)
+    }
+
     private val sp by lazy {
         PreferencesManager(context = context)
     }
@@ -120,7 +124,7 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
         MDCameraController.setResultCallback(resultCallback)
     }
 
-    private fun stopService(context: ComponentActivity) {
+    fun stopService(context: ComponentActivity) {
         context.stopService(Intent(context, MotionDetectorForegroundService::class.java))
     }
 
@@ -152,5 +156,9 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
     override fun onPause(owner: LifecycleOwner) {
         super.onPause(owner)
         orientationListener.disable()
+    }
+
+    fun unbindService(context: ComponentActivity) {
+        serviceCommunicator.unbindService(context)
     }
 }
