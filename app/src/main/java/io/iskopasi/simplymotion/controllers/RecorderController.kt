@@ -1,8 +1,8 @@
 package io.iskopasi.simplymotion.controllers
 
 import android.annotation.SuppressLint
-import android.app.Application
 import android.content.ContentValues
+import android.content.Context
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.camera.core.MirrorMode
@@ -21,8 +21,8 @@ import kotlinx.coroutines.delay
 
 @SuppressLint("MissingPermission")
 class RecorderController(
-    private val context: Application,
-    private val eventListener: (MotionDetectorEvent) -> Unit,
+    private val context: Context,
+    private val eventListener: MDEventCallback,
     rotation: Int
 ) {
     private var finisherJob: Job? = null
@@ -61,20 +61,19 @@ class RecorderController(
                 pendingRecording.start(ContextCompat.getMainExecutor(context.applicationContext)) { event ->
                     when (event) {
                         is VideoRecordEvent.Start -> {
-                            eventListener(MotionDetectorEvent.VIDEO_START)
+                            eventListener(MDEvent.VIDEO_START, null)
                         }
 
                         is VideoRecordEvent.Finalize -> {
                             finalize()
 
                             val msg = if (!event.hasError()) {
-                                "Video saved to gallery: ${event.outputResults.outputUri}".e
+                                "Video saved: ${event.outputResults.outputUri}".e
                             } else {
                                 "Failed to save video: ${event.error}".e
                             }
 
-                            Toast.makeText(context, msg, Toast.LENGTH_SHORT)
-                                .show()
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -90,7 +89,7 @@ class RecorderController(
     }
 
     private fun finalize() {
-        eventListener(MotionDetectorEvent.VIDEO_STOP)
+        eventListener(MDEvent.VIDEO_STOP, null)
         finisherJob?.cancel()
         recording?.stop()
         recording?.close()

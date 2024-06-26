@@ -3,6 +3,7 @@ package io.iskopasi.simplymotion
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.Surface
 import android.view.ViewGroup
@@ -80,6 +81,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.ui.theme.SimplyMotionTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -99,23 +102,45 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    private fun checkPermissions(context: Context) = ContextCompat.checkSelfPermission(
-        context, Manifest.permission.CAMERA
-    ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-        context, Manifest.permission.RECORD_AUDIO
-    ) == PackageManager.PERMISSION_GRANTED
+    private fun checkPermissions(context: Context) =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                context, Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+                context, Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         if (!checkPermissions(this)) {
-            cameraPermissionRequest.launch(
-                arrayOf(
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.RECORD_AUDIO,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                cameraPermissionRequest.launch(
+                    arrayOf(
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.RECORD_AUDIO,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.POST_NOTIFICATIONS,
+                    )
                 )
-            )
+            } else {
+                cameraPermissionRequest.launch(
+                    arrayOf(
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.RECORD_AUDIO,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    )
+                )
+            }
         }
 
 //        enableEdgeToEdge()
@@ -136,12 +161,26 @@ class MainActivity : ComponentActivity() {
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                 )
+
+                MDCameraController.setSurfaceProvider(this.surfaceProvider)
             }
         }
 
         lifecycle.removeObserver(uiModel)
         lifecycle.addObserver(uiModel)
-        uiModel.setupCamera(this, viewfinder.surfaceProvider)
+//        uiModel.setupCamera(this, viewfinder.surfaceProvider)
+
+        uiModel.startService(this)
+
+        lifecycleScope.launch {
+            uiModel.isBrightnessUp.collect { isBrightnessUp ->
+                if (isBrightnessUp) {
+                    brightnessUp()
+                } else {
+                    brightnessDown()
+                }
+            }
+        }
 
         setContent {
             drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -179,6 +218,23 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun brightnessDown() = lifecycleScope.launch {
+//        context.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+//        context.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        window.attributes = window.attributes.apply {
+            dimAmount = 1f
+            screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        }
+    }
+
+    private fun brightnessUp() = lifecycleScope.launch {
+        window.attributes = window.attributes.apply {
+            dimAmount = 0.5f
+            screenBrightness = 0.5f
         }
     }
 
@@ -302,15 +358,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 })
-            if (uiModel.isRecording) Box(
-                modifier = Modifier
-                    .padding(top = 16.dp, end = 32.dp)
-                    .size(32.dp)
-                    .clip(
-                        RoundedCornerShape(32.dp)
-                    )
-                    .align(Alignment.TopStart)
-            )
             Box(
                 modifier = Modifier
                     .height(120.dp)
@@ -455,6 +502,17 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+
+            if (uiModel.isRecording) Box(
+                modifier = Modifier
+                    .padding(top = 56.dp, start = 32.dp, end = 32.dp)
+                    .size(32.dp)
+                    .clip(
+                        RoundedCornerShape(32.dp)
+                    )
+                    .background(Color.Red)
+                    .align(Alignment.TopStart)
+            )
         }
     }
 

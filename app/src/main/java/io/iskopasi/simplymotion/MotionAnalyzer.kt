@@ -15,13 +15,13 @@ import java.util.concurrent.Executors
 import kotlin.math.exp
 import kotlin.math.pow
 
-typealias OnAnalyzeResult = (Bitmap?, Rect) -> Unit
+typealias ResultCallback = (Bitmap?, Rect) -> Unit
 
 class MotionAnalyzer(
     private val width: Int,
     private val height: Int,
-    var threshold: Int,
-    val listener: OnAnalyzeResult
+    private var threshold: Int,
+    val listener: ResultCallback
 ) : ImageAnalysis.Analyzer {
     var isAllowed = true
 
@@ -104,8 +104,8 @@ class MotionAnalyzer(
             val finalBitmap = results[0].get()
 
             val borderOffset = 4
-            val xCoefficient = (width - (borderOffset * 2)) / finalBitmap.width
-            val yCoefficient = (height - (borderOffset * 2)) / finalBitmap.height
+            val xCoefficient = width / (finalBitmap.width - (borderOffset * 2))
+            val yCoefficient = height / (finalBitmap.height - (borderOffset * 2))
             val detectRect = finalBitmap.detect(xCoefficient, yCoefficient, threshold, borderOffset)
 
             listener(finalBitmap, detectRect)
@@ -280,7 +280,7 @@ class MotionAnalyzer(
         return Rect(
             (verticalSums.indexOfFirst { it > threshold } + offset) * xCoefficient,
             (horizontalSums.indexOfFirst { it > threshold } + offset) * yCoefficient,
-            (verticalSums.indexOfLast { it > threshold } + offset) * xCoefficient,
+            (verticalSums.indexOfLast { it > threshold } + offset * 4) * xCoefficient,
             (horizontalSums.indexOfLast { it > threshold } + offset) * yCoefficient
         )
     }

@@ -1,5 +1,6 @@
 package io.iskopasi.simplymotion.utils
 
+import android.app.NotificationManager
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
@@ -33,6 +34,9 @@ import kotlin.math.abs
 
 val Context.cameraManager: CameraManager?
     get() = ContextCompat.getSystemService(this, CameraManager::class.java)
+
+val Context.notificationManager: NotificationManager?
+    get() = ContextCompat.getSystemService(this, NotificationManager::class.java)
 
 fun getCameraId(
     context: Context,
