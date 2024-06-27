@@ -15,14 +15,23 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.viewModelScope
+import androidx.room.Room
 import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.controllers.MDCommand
 import io.iskopasi.simplymotion.controllers.MDEvent
+import io.iskopasi.simplymotion.room.MDDatabase
+import io.iskopasi.simplymotion.room.MDLog
 import io.iskopasi.simplymotion.utils.OrientationListener
 import io.iskopasi.simplymotion.utils.PreferencesManager
 import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.SENSO_KEY
 import io.iskopasi.simplymotion.utils.ServiceCommunicator
+import io.iskopasi.simplymotion.utils.e
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
+import java.util.Date
 
 
 class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycleObserver {
@@ -34,6 +43,24 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
     var isArming by mutableStateOf(false)
     var orientation by mutableIntStateOf(0)
     var isBrightnessUp = MutableStateFlow(false)
+    var logs by mutableStateOf<List<MDLog>>(listOf())
+
+    private val room by lazy {
+        Room.databaseBuilder(
+            getApplication(),
+            MDDatabase::class.java, "md_db"
+        ).build()
+    }
+
+    init {
+        viewModelScope.launch {
+            room.logDao().getAll()
+                .flowOn(Dispatchers.IO).collect {
+                    "--> collecting ${it.size}".e
+                    logs = it
+                }
+        }
+    }
 
     private val resultCallback: ResultCallback =
         { bitmap, detectRect ->
@@ -52,11 +79,15 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
                 MDEvent.VIDEO_START.name -> {
                     isRecording = true
                     isBrightnessUp.value = true
+
+                    logMotionDetectionStart()
                 }
 
                 MDEvent.VIDEO_STOP.name -> {
                     isRecording = false
                     isBrightnessUp.value = false
+
+                    logVideoStop()
                 }
 
                 MDEvent.ARMED.name -> {
@@ -80,6 +111,27 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
             }
         }
     }
+
+    private fun logVideoStop() = viewModelScope.launch {
+        room.logDao().insert(
+            MDLog(
+                uid = 0,
+                text = "Video recording stopped",
+                date = Date()
+            )
+        )
+    }
+
+    private fun logMotionDetectionStart() = viewModelScope.launch {
+        room.logDao().insert(
+            MDLog(
+                uid = 0,
+                text = "Motion detected (starting video recording)",
+                date = Date()
+            )
+        )
+    }
+
     private val orientationListener by lazy {
         object : OrientationListener(getApplication()) {
             override fun onSimpleOrientationChanged(orientation: Int, currentOrientation: Int) {

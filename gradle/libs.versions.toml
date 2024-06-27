@@ -1,11 +1,11 @@
 [versions]
-agp = "8.4.2"
+agp = "8.5.0"
 cameraCore = "1.3.4"
 cameraVideo = "1.4.0-beta02"
 concurrentFuturesKtx = "1.2.0"
 datastorePreferences = "1.1.1"
 glide = "4.16.0"
-kotlin = "1.9.0"
+kotlin = "2.0.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -17,6 +17,8 @@ lifecycleViewmodelCompose = "2.8.2"
 navigationCompose = "2.7.7"
 navigationFragmentKtx = "2.7.7"
 navigationUiKtx = "2.7.7"
+roomCompiler = "2.6.1"
+roomRuntime = "2.6.1"
 window = "1.3.0"
 loader = "1.1.0"
 lifecycleService = "2.8.2"
@@ -35,6 +37,8 @@ androidx-material-icons-extended = { module = "androidx.compose.material:materia
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
 androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigationUiKtx" }
+androidx-room-compiler = { module = "androidx.room:room-compiler" }
+androidx-room-runtime = { module = "androidx.room:room-runtime" }
 androidx-window = { module = "androidx.window:window", version.ref = "window" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -52,8 +56,9 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-loader = { group = "androidx.loader", name = "loader", version.ref = "loader" }
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
+room-compiler = { module = "androidx.room:room-compiler" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

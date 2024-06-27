@@ -1,4 +1,4 @@
-package io.iskopasi.simplymotion
+package io.iskopasi.simplymotion.screens
 
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
@@ -67,8 +67,10 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import io.iskopasi.simplymotion.UIModel
 import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.ui.theme.SimplyMotionTheme
+import io.iskopasi.simplymotion.ui.theme.bg1
 import io.iskopasi.simplymotion.utils.toRotation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -380,7 +382,6 @@ private fun closeDrawer() {
 private fun MenuComposable(
     uiModel: UIModel
 ) {
-//    val uiModel: UIModel = viewModel()
     var sensitivityTF by rememberSaveable {
         mutableStateOf(uiModel.getSensitivity().toString())
     }
@@ -388,7 +389,7 @@ private fun MenuComposable(
 
     Box(
         modifier = Modifier
-            .background(Color(0xFF071932))
+            .background(bg1)
             .fillMaxHeight()
             .width(250.dp)
             .padding(vertical = 64.dp, horizontal = 8.dp)

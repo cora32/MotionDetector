@@ -1,6 +1,7 @@
 package io.iskopasi.simplymotion
 
 import android.Manifest
+import android.R
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -17,6 +18,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
+import io.iskopasi.simplymotion.screens.LogScreen
+import io.iskopasi.simplymotion.screens.MainScreen
 import io.iskopasi.simplymotion.utils.e
 import kotlinx.coroutines.launch
 
@@ -113,15 +116,15 @@ class MainActivity : ComponentActivity() {
                                 route = LogRoute.toString(),
                                 navOptions = navOptions {
                                     anim {
-                                        enter = android.R.animator.fade_in
-                                        exit = android.R.animator.fade_out
+                                        enter = R.animator.fade_in
+                                        exit = R.animator.fade_out
                                     }
                                 }
 
                             )
                         })
                 }
-                composable(LogRoute.toString()) { LogScreen() }
+                composable(LogRoute.toString()) { LogScreen(uiModel) }
             }
         }
     }
