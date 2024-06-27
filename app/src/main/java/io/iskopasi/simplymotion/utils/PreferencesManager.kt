@@ -45,6 +45,6 @@ class PreferencesManager(context: Application) {
 
     companion object {
         const val SENSO_KEY = "senso"
-        const val IS_FRONT = "is_front"
+        const val IS_FRONT_KEY = "is_front"
     }
 }

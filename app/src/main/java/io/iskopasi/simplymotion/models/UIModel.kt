@@ -1,4 +1,4 @@
-package io.iskopasi.simplymotion
+package io.iskopasi.simplymotion.models
 
 import android.app.Application
 import android.content.Context
@@ -17,6 +17,8 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
+import io.iskopasi.simplymotion.MotionDetectorForegroundService
+import io.iskopasi.simplymotion.ResultCallback
 import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.controllers.MDCommand
 import io.iskopasi.simplymotion.controllers.MDEvent
@@ -24,13 +26,10 @@ import io.iskopasi.simplymotion.room.MDDatabase
 import io.iskopasi.simplymotion.room.MDLog
 import io.iskopasi.simplymotion.utils.OrientationListener
 import io.iskopasi.simplymotion.utils.PreferencesManager
-import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.IS_FRONT
+import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.IS_FRONT_KEY
 import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.SENSO_KEY
 import io.iskopasi.simplymotion.utils.ServiceCommunicator
-import io.iskopasi.simplymotion.utils.e
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import java.util.Date
 
@@ -45,7 +44,6 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
     var isFront by mutableStateOf(false)
     var orientation by mutableIntStateOf(0)
     var isBrightnessUp = MutableStateFlow(false)
-    var logs by mutableStateOf<List<MDLog>>(listOf())
 
     private val room by lazy {
         Room.databaseBuilder(
@@ -54,26 +52,11 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
         ).build()
     }
 
-    init {
-        viewModelScope.launch {
-            room.logDao().getAll()
-                .flowOn(Dispatchers.IO).collect {
-                    "--> collecting ${it.size}".e
-                    logs = it
-                }
-        }
-    }
-
     private val resultCallback: ResultCallback =
         { bitmap, detectRect ->
 //                uiModel.bitmap = bitmap
-            if (!detectRect.isEmpty) {
-                detectRectState = detectRect
 
-                serviceCommunicator.sendMsg(MDCommand.START_VIDEO.name)
-            } else {
-                detectRectState = null
-            }
+            detectRectState = detectRect
         }
     private val serviceCommunicator by lazy {
         ServiceCommunicator("UIModel") { data, obj, comm ->
@@ -121,6 +104,10 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
         }
     }
 
+    init {
+        serviceCommunicator.sendMsg(MDCommand.REQUEST_STATE.name)
+    }
+
     private fun logVideoStop() = viewModelScope.launch {
         room.logDao().insert(
             MDLog(
@@ -147,10 +134,6 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
                 this@UIModel.orientation = currentOrientation
             }
         }
-    }
-
-    init {
-        serviceCommunicator.sendMsg(MDCommand.REQUEST_STATE.name)
     }
 
     private val sp by lazy {
@@ -226,13 +209,13 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
     fun switchCameraToFront() {
         serviceCommunicator.sendMsg(MDCommand.SWITCH_CAMERA_TO_FRONT.name)
 
-        sp.saveBool(IS_FRONT, true)
+        sp.saveBool(IS_FRONT_KEY, true)
     }
 
     fun switchCameraToRear() {
         serviceCommunicator.sendMsg(MDCommand.SWITCH_CAMERA_TO_REAR.name)
 
-        sp.saveBool(IS_FRONT, false)
+        sp.saveBool(IS_FRONT_KEY, false)
     }
 
     fun switchCamera() {

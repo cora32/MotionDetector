@@ -15,7 +15,7 @@ import java.util.concurrent.Executors
 import kotlin.math.exp
 import kotlin.math.pow
 
-typealias ResultCallback = (Bitmap?, Rect) -> Unit
+typealias ResultCallback = (Bitmap?, Rect?) -> Unit
 
 class MotionAnalyzer(
     private val width: Int,
@@ -41,7 +41,6 @@ class MotionAnalyzer(
     }
     private val workers = 4
     private val pool = Executors.newFixedThreadPool(workers)
-    private val emptyRect = Rect().apply { setEmpty() }
     private val kSize = 9
     private val alpha = 1f
     private val sigma = 0.3 * ((kSize - 1) * 0.5 - 1) + 0.8
@@ -60,13 +59,15 @@ class MotionAnalyzer(
     }
 
     override fun analyze(image: ImageProxy) {
+        // Skip analyze step if analyzer is disabled
         if (!isAllowed) {
-            listener(null, emptyRect)
+            listener(null, null)
             image.close()
 
             return
         }
 
+        // Skip analyze step if it's too fast
         val elapsed = System.currentTimeMillis() - lastEvalTime
         if (elapsed < 100L) {
             image.close()
@@ -74,6 +75,7 @@ class MotionAnalyzer(
             return
         }
 
+        // Skip first analyze step and save image data for next step
         if (prev == null) {
             prev = image.planes[0].buffer.copy()
             image.close()
@@ -249,7 +251,7 @@ class MotionAnalyzer(
         yCoefficient: Int,
         threshold: Int,
         offset: Int
-    ): Rect {
+    ): Rect? {
         verticalSums.clear()
         horizontalSums.clear()
 
@@ -277,12 +279,21 @@ class MotionAnalyzer(
             horizontalSums.add(accumulator)
         }
 
-        return Rect(
-            (verticalSums.indexOfFirst { it > threshold } + offset) * xCoefficient,
-            (horizontalSums.indexOfFirst { it > threshold } + offset) * yCoefficient,
-            (verticalSums.indexOfLast { it > threshold } + offset * 4) * xCoefficient,
-            (horizontalSums.indexOfLast { it > threshold } + offset) * yCoefficient
-        )
+        val left = verticalSums.indexOfFirst { it > threshold }
+        val top = horizontalSums.indexOfFirst { it > threshold }
+        val right = verticalSums.indexOfLast { it > threshold }
+        val bottom = horizontalSums.indexOfLast { it > threshold }
+
+        return if (left == -1 || top == -1 || right == -1 || bottom == -1) {
+            null
+        } else {
+            Rect(
+                (left + offset) * xCoefficient,
+                (top + offset) * yCoefficient,
+                (right + offset * 4) * xCoefficient,
+                (bottom + offset) * yCoefficient
+            )
+        }
     }
 
     private fun Bitmap.medianPixel(x: Int, y: Int, pixels: IntArray): Int {

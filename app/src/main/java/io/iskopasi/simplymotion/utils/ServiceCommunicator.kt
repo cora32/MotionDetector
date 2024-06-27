@@ -46,10 +46,10 @@ class ServiceCommunicator(val tag: String, callback: CommunicatorCallback) {
     val serviceConnection by lazy {
         object : ServiceConnection {
             override fun onServiceConnected(className: ComponentName, service: IBinder) {
-                messengerSender = Messenger(service).apply {
-                    // Sending service message to bind a reply messenger on other side
-                    sendMsg(BIND_ME, null, replyTo = messengerReceiver)
-                }
+                messengerSender = Messenger(service)
+
+                // Sending service message to bind a reply messenger on other side
+                sendMsg(BIND_ME, null)
             }
 
             override fun onServiceDisconnected(arg0: ComponentName) {}

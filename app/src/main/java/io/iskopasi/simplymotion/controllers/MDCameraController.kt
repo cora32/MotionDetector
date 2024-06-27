@@ -28,7 +28,7 @@ import java.util.concurrent.Executors
 typealias MDEventCallback = (MDEvent, Long?) -> Unit
 
 enum class MDCommand {
-    START_VIDEO,
+    //    START_VIDEO,
     ARM,
     ARM_DELAYED,
     DISARM,
@@ -48,7 +48,12 @@ enum class MDEvent {
     CAMERA_FRONT,
 }
 
-class MDCameraController(var isFront: Boolean, val eventCallback: MDEventCallback) {
+class MDCameraController(
+    service: MotionDetectorForegroundService,
+    var isFront: Boolean,
+    val threshold: Int,
+    val eventCallback: MDEventCallback,
+) {
     companion object {
         private var resultCallback: ResultCallback? = null
         val preview: Preview by lazy {
@@ -95,7 +100,13 @@ class MDCameraController(var isFront: Boolean, val eventCallback: MDEventCallbac
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var motionAnalyzer: MotionAnalyzer? = null
     private var armJob: CountDownTimer? = null
-    private var recController: RecorderController? = null
+    private val recController by lazy {
+        RecorderController(service.applicationContext, eventCallback, Surface.ROTATION_0)
+    }
+    private val metrics by lazy {
+        WindowMetricsCalculator.getOrCreate()
+            .computeCurrentWindowMetrics(service).bounds
+    }
     var isArmed = false
 
     private fun getCameraSelector(): CameraSelector {
@@ -105,10 +116,6 @@ class MDCameraController(var isFront: Boolean, val eventCallback: MDEventCallbac
     }
 
     private fun getImageAnalysis(service: MotionDetectorForegroundService): ImageAnalysis {
-        val metrics =
-            WindowMetricsCalculator.getOrCreate()
-                .computeCurrentWindowMetrics(service).bounds
-
         val resolutionSelectorAnalyze = ResolutionSelector.Builder()
 //            .setAspectRatioStrategy(AspectRatioStrategy(AspectRatio.RATIO_16_9,
 //                AspectRatioStrategy.FALLBACK_RULE_NONE
@@ -131,22 +138,25 @@ class MDCameraController(var isFront: Boolean, val eventCallback: MDEventCallbac
             .build()
             // The analyzer can then be assigned to the instance
             .also {
-                motionAnalyzer = MotionAnalyzer(metrics.width(), metrics.height(), 10)
+                motionAnalyzer = MotionAnalyzer(metrics.width(), metrics.height(), threshold)
                 { bitmap, detectRect ->
                     resultCallback?.invoke(bitmap, detectRect)
+
+                    detectRect?.let { rect ->
+                        if (!rect.isEmpty) {
+
+                            if (isArmed) {
+                                startVideo()
+                            }
+                        }
+                    }
                 }
                 it.setAnalyzer(cameraExecutor, motionAnalyzer!!)
             }
     }
 
     suspend fun startCamera(service: MotionDetectorForegroundService) {
-//        val rotation = ContextCompat.getDisplayOrDefault(service).rotation
-        recController = RecorderController(service, eventCallback, Surface.ROTATION_0)
-
         val provider = ProcessCameraProvider.getInstance(service).await()
-//        val aspect = aspectRatio(metrics.width(), metrics.height())
-
-//        val resolutionSelectorPreview = getSelectorPreview()
 
         // Must unbind the use-cases before rebinding them
         provider.unbindAll()
@@ -164,7 +174,7 @@ class MDCameraController(var isFront: Boolean, val eventCallback: MDEventCallbac
                 getCameraSelector(),
                 preview,
                 getImageAnalysis(service),
-                recController!!.videoCapture
+                recController.videoCapture
             )
 
             // Attach the viewfinder's surface provider to preview use case
@@ -297,18 +307,12 @@ class MDCameraController(var isFront: Boolean, val eventCallback: MDEventCallbac
         }
     }
 
-    fun startVideo(): Boolean {
-        if (isArmed) {
-            recController?.start()
-
-            return true
-        }
-
-        return false
+    fun startVideo() {
+        recController.start()
     }
 
     fun stopVideo() {
-        recController?.stop()
+        recController.stop()
     }
 
     fun resumeAnalyzer() {
@@ -331,7 +335,7 @@ class MDCameraController(var isFront: Boolean, val eventCallback: MDEventCallbac
         armJob?.cancel()
         isArmed = false
 
-        recController?.stop()
+        recController.stop()
         eventCallback(MDEvent.DISARMED, null)
     }
 

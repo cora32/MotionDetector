@@ -37,7 +37,7 @@ class RecorderController(
             put(MediaStore.Video.Media.DISPLAY_NAME, name)
         }
         val mediaStoreOutput = MediaStoreOutputOptions.Builder(
-            context.contentResolver,
+            context.applicationContext.contentResolver,
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         ).setContentValues(contentValues)
             .build()

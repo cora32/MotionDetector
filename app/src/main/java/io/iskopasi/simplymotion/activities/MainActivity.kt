@@ -1,8 +1,8 @@
-package io.iskopasi.simplymotion
+package io.iskopasi.simplymotion.activities
 
 import android.Manifest
-import android.R
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -17,8 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navOptions
-import io.iskopasi.simplymotion.screens.LogScreen
+import io.iskopasi.simplymotion.models.UIModel
 import io.iskopasi.simplymotion.screens.MainScreen
 import io.iskopasi.simplymotion.utils.e
 import kotlinx.coroutines.launch
@@ -114,19 +113,27 @@ class MainActivity : ComponentActivity() {
                     MainScreen(
                         uiModel,
                         toLogs = {
-                            navController.navigate(
-                                route = LogRoute.toString(),
-                                navOptions = navOptions {
-                                    anim {
-                                        enter = R.animator.fade_in
-                                        exit = R.animator.fade_out
-                                    }
-                                }
-
+                            // Using startActivity because Navigation API can't retain
+                            // previous screen
+                            ContextCompat.startActivity(
+                                this@MainActivity,
+                                Intent(this@MainActivity, LogsActivity::class.java),
+                                null
                             )
+
+//                            navController.navigate(
+//                                route = LogRoute.toString(),
+//                                navOptions = navOptions {
+//                                    anim {
+//                                        enter = R.animator.fade_in
+//                                        exit = R.animator.fade_out
+//                                    }
+//                                }
+//
+//                            )
                         })
                 }
-                composable(LogRoute.toString()) { LogScreen(uiModel) }
+//                composable(LogRoute.toString()) { LogScreen(uiModel) }
             }
         }
     }

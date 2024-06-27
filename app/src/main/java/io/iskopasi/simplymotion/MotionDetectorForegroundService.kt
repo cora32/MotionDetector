@@ -14,12 +14,14 @@ import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.coroutineScope
 import androidx.lifecycle.lifecycleScope
+import io.iskopasi.simplymotion.activities.MainActivity
 import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.controllers.MDCommand
 import io.iskopasi.simplymotion.controllers.MDEvent
 import io.iskopasi.simplymotion.utils.CommunicatorCallback
 import io.iskopasi.simplymotion.utils.PreferencesManager
-import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.IS_FRONT
+import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.IS_FRONT_KEY
+import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.SENSO_KEY
 import io.iskopasi.simplymotion.utils.ServiceCommunicator
 import io.iskopasi.simplymotion.utils.e
 import io.iskopasi.simplymotion.utils.notificationManager
@@ -41,9 +43,9 @@ class MotionDetectorForegroundService : LifecycleService() {
 
     private val commandHandler: CommunicatorCallback = { data, obj, comm ->
         when (data) {
-            MDCommand.START_VIDEO.name -> {
-                mdCameraController.startVideo()
-            }
+//            MDCommand.START_VIDEO.name -> {
+//                mdCameraController.startVideo()
+//            }
 
             MDCommand.ARM.name -> {
                 mdCameraController.arm()
@@ -90,7 +92,11 @@ class MotionDetectorForegroundService : LifecycleService() {
     }
 
     private val mdCameraController by lazy {
-        MDCameraController(isFront = sp.getBool(IS_FRONT, false)) { event, time ->
+        MDCameraController(
+            this,
+            isFront = sp.getBool(IS_FRONT_KEY, false),
+            threshold = sp.getInt(SENSO_KEY, 10),
+        ) { event, time ->
             serviceCommunicator.sendMsg(event.name, time)
         }
     }
@@ -134,11 +140,6 @@ class MotionDetectorForegroundService : LifecycleService() {
         }
 
         return super.onStartCommand(intent, flags, startId)
-    }
-
-    override fun onDestroy() {
-        "---> onDestroy ".e
-        super.onDestroy()
     }
 
     private fun getChannel(): String {

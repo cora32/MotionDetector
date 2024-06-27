@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">SimplyMotion</string>
+    <string name="settings">Settings</string>
+    <string name="go_to_logs">Logs</string>
 </resources>
