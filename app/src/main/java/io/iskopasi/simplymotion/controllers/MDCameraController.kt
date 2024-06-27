@@ -34,6 +34,8 @@ enum class MDCommand {
     DISARM,
     SET_THRESHOLD,
     REQUEST_STATE,
+    SWITCH_CAMERA_TO_FRONT,
+    SWITCH_CAMERA_TO_REAR,
 }
 
 enum class MDEvent {
@@ -42,9 +44,11 @@ enum class MDEvent {
     VIDEO_START,
     VIDEO_STOP,
     TIMER,
+    CAMERA_REAR,
+    CAMERA_FRONT,
 }
 
-class MDCameraController(val eventCallback: MDEventCallback) {
+class MDCameraController(var isFront: Boolean, val eventCallback: MDEventCallback) {
     companion object {
         private var resultCallback: ResultCallback? = null
         val preview: Preview by lazy {
@@ -94,21 +98,17 @@ class MDCameraController(val eventCallback: MDEventCallback) {
     private var recController: RecorderController? = null
     var isArmed = false
 
-    suspend fun startCamera(service: MotionDetectorForegroundService) {
-//        val rotation = ContextCompat.getDisplayOrDefault(service).rotation
-        recController = RecorderController(service, eventCallback, Surface.ROTATION_0)
+    private fun getCameraSelector(): CameraSelector {
+        val lensFacing =
+            if (isFront) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
+        return CameraSelector.Builder().requireLensFacing(lensFacing).build()
+    }
 
-        val provider = ProcessCameraProvider.getInstance(service).await()
-        val lensFacing = CameraSelector.LENS_FACING_FRONT
-
+    private fun getImageAnalysis(service: MotionDetectorForegroundService): ImageAnalysis {
         val metrics =
             WindowMetricsCalculator.getOrCreate()
                 .computeCurrentWindowMetrics(service).bounds
-//        val aspect = aspectRatio(metrics.width(), metrics.height())
 
-        val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-
-//        val resolutionSelectorPreview = getSelectorPreview()
         val resolutionSelectorAnalyze = ResolutionSelector.Builder()
 //            .setAspectRatioStrategy(AspectRatioStrategy(AspectRatio.RATIO_16_9,
 //                AspectRatioStrategy.FALLBACK_RULE_NONE
@@ -122,7 +122,7 @@ class MDCameraController(val eventCallback: MDEventCallback) {
             .build()
 
         // ImageAnalysis
-        val imageAnalysis = ImageAnalysis.Builder()
+        return ImageAnalysis.Builder()
             // We request aspect ratio but no resolution
             .setResolutionSelector(resolutionSelectorAnalyze)
             // Set initial target rotation, we will have to call service again if rotation changes
@@ -137,10 +137,19 @@ class MDCameraController(val eventCallback: MDEventCallback) {
                 }
                 it.setAnalyzer(cameraExecutor, motionAnalyzer!!)
             }
+    }
+
+    suspend fun startCamera(service: MotionDetectorForegroundService) {
+//        val rotation = ContextCompat.getDisplayOrDefault(service).rotation
+        recController = RecorderController(service, eventCallback, Surface.ROTATION_0)
+
+        val provider = ProcessCameraProvider.getInstance(service).await()
+//        val aspect = aspectRatio(metrics.width(), metrics.height())
+
+//        val resolutionSelectorPreview = getSelectorPreview()
 
         // Must unbind the use-cases before rebinding them
         provider.unbindAll()
-
 
         // Must remove observers from the previous camera instance
         if (camera != null) {
@@ -152,9 +161,9 @@ class MDCameraController(val eventCallback: MDEventCallback) {
             // camera provides access to CameraControl & CameraInfo
             camera = provider.bindToLifecycle(
                 service,
-                cameraSelector,
+                getCameraSelector(),
                 preview,
-                imageAnalysis,
+                getImageAnalysis(service),
                 recController!!.videoCapture
             )
 
@@ -165,7 +174,6 @@ class MDCameraController(val eventCallback: MDEventCallback) {
             "Use case binding failed".e
         }
     }
-
 
     private fun observeCameraState(context: ComponentActivity, cameraInfo: CameraInfo) {
         cameraInfo.cameraState.observe(context) { cameraState ->
@@ -344,5 +352,19 @@ class MDCameraController(val eventCallback: MDEventCallback) {
 
     fun setThreshold(threshold: Int) {
         motionAnalyzer?.setSensitivity(threshold)
+    }
+
+    suspend fun setCameraFront(service: MotionDetectorForegroundService) {
+        isFront = true
+        eventCallback(MDEvent.CAMERA_FRONT, null)
+
+        startCamera(service)
+    }
+
+    suspend fun setCameraRear(service: MotionDetectorForegroundService) {
+        isFront = false
+        eventCallback(MDEvent.CAMERA_REAR, null)
+
+        startCamera(service)
     }
 }

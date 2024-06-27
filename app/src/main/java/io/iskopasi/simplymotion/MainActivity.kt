@@ -105,6 +105,8 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            // Looks like Compose Navigation does not support previous screen retaining
+            // which results in rebuilding it everytime on back button press.
             val navController = rememberNavController()
 
             NavHost(navController = navController, startDestination = MainRoute.toString()) {

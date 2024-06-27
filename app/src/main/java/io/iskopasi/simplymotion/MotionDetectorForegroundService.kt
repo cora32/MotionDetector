@@ -13,10 +13,13 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.coroutineScope
+import androidx.lifecycle.lifecycleScope
 import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.controllers.MDCommand
 import io.iskopasi.simplymotion.controllers.MDEvent
 import io.iskopasi.simplymotion.utils.CommunicatorCallback
+import io.iskopasi.simplymotion.utils.PreferencesManager
+import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.IS_FRONT
 import io.iskopasi.simplymotion.utils.ServiceCommunicator
 import io.iskopasi.simplymotion.utils.e
 import io.iskopasi.simplymotion.utils.notificationManager
@@ -62,12 +65,32 @@ class MotionDetectorForegroundService : LifecycleService() {
                 if (mdCameraController.isArmed) {
                     serviceCommunicator.sendMsg(MDEvent.ARMED.name, null)
                 }
+                if (mdCameraController.isFront) {
+                    serviceCommunicator.sendMsg(MDEvent.CAMERA_FRONT.name, null)
+                } else {
+                    serviceCommunicator.sendMsg(MDEvent.CAMERA_REAR.name, null)
+                }
+            }
+
+            MDCommand.SWITCH_CAMERA_TO_FRONT.name -> {
+                lifecycleScope.launch {
+                    mdCameraController.setCameraFront(this@MotionDetectorForegroundService)
+                }
+            }
+
+            MDCommand.SWITCH_CAMERA_TO_REAR.name -> {
+                lifecycleScope.launch {
+                    mdCameraController.setCameraRear(this@MotionDetectorForegroundService)
+                }
             }
         }
     }
+    private val sp by lazy {
+        PreferencesManager(context = this.application)
+    }
 
     private val mdCameraController by lazy {
-        MDCameraController { event, time ->
+        MDCameraController(isFront = sp.getBool(IS_FRONT, false)) { event, time ->
             serviceCommunicator.sendMsg(event.name, time)
         }
     }

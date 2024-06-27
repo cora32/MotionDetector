@@ -4,12 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.iskopasi.simplymotion.UIModel
@@ -39,12 +42,18 @@ fun LogRow(mdLog: MDLog) {
         Text(
             text = mdLog.text,
             color = text1,
-            fontSize = 16.sp
+            fontSize = 16.sp,
+            modifier = Modifier.padding(top = 16.dp)
         )
         Text(
             text = DateFormat.getDateTimeInstance().format(mdLog.date),
             color = text1,
-            fontSize = 13.sp
+            fontSize = 13.sp,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
+        Box(modifier = Modifier
+            .height(1.dp)
+            .fillMaxWidth()
+            .background(Color.White))
     }
 }

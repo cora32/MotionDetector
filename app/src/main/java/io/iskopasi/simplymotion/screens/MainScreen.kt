@@ -23,8 +23,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CameraFront
+import androidx.compose.material.icons.rounded.CameraRear
 import androidx.compose.material.icons.rounded.Clear
-import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Timer10
@@ -346,11 +347,11 @@ private fun UIComposable(
                         .size(48.dp),
 
                     onClick = {
-                        toLogs()
+                        uiModel.switchCamera()
                     }) {
                     Icon(
-                        Icons.Rounded.List,
-                        "Logs",
+                        if (uiModel.isFront) Icons.Rounded.CameraFront else Icons.Rounded.CameraRear,
+                        "Front/back camera",
                         modifier = Modifier
                             .size(64.dp)
                             .rotate(rotation),

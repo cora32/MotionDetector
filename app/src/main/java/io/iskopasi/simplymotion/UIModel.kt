@@ -24,6 +24,7 @@ import io.iskopasi.simplymotion.room.MDDatabase
 import io.iskopasi.simplymotion.room.MDLog
 import io.iskopasi.simplymotion.utils.OrientationListener
 import io.iskopasi.simplymotion.utils.PreferencesManager
+import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.IS_FRONT
 import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.SENSO_KEY
 import io.iskopasi.simplymotion.utils.ServiceCommunicator
 import io.iskopasi.simplymotion.utils.e
@@ -41,6 +42,7 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
     var isArmed by mutableStateOf(false)
     var timerValue by mutableStateOf<String?>(null)
     var isArming by mutableStateOf(false)
+    var isFront by mutableStateOf(false)
     var orientation by mutableIntStateOf(0)
     var isBrightnessUp = MutableStateFlow(false)
     var logs by mutableStateOf<List<MDLog>>(listOf())
@@ -76,6 +78,13 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
     private val serviceCommunicator by lazy {
         ServiceCommunicator("UIModel") { data, obj, comm ->
             when (data) {
+                MDEvent.CAMERA_REAR.name -> {
+                    isFront = false
+                }
+
+                MDEvent.CAMERA_FRONT.name -> {
+                    isFront = true
+                }
                 MDEvent.VIDEO_START.name -> {
                     isRecording = true
                     isBrightnessUp.value = true
@@ -212,5 +221,21 @@ class UIModel(context: Application) : AndroidViewModel(context), DefaultLifecycl
 
     fun unbindService(context: ComponentActivity) {
         serviceCommunicator.unbindService(context)
+    }
+
+    fun switchCameraToFront() {
+        serviceCommunicator.sendMsg(MDCommand.SWITCH_CAMERA_TO_FRONT.name)
+
+        sp.saveBool(IS_FRONT, true)
+    }
+
+    fun switchCameraToRear() {
+        serviceCommunicator.sendMsg(MDCommand.SWITCH_CAMERA_TO_REAR.name)
+
+        sp.saveBool(IS_FRONT, false)
+    }
+
+    fun switchCamera() {
+        if (isFront) switchCameraToRear() else switchCameraToFront()
     }
 }
