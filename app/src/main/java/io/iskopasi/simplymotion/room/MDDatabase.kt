@@ -8,5 +8,5 @@ import io.iskopasi.simplymotion.utils.Converters
 @Database(entities = [MDLog::class], version = 1)
 @TypeConverters(Converters::class)
 abstract class MDDatabase : RoomDatabase() {
-    abstract fun logDao(): MDDao
+    abstract fun mdDao(): MDDao
 }

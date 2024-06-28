@@ -4,7 +4,8 @@ plugins {
     alias(libs.plugins.compose.compiler)
     id("com.google.devtools.ksp") version "2.0.0-1.0.22" apply true
 
-//    kotlin("kapt")
+    id("com.google.dagger.hilt.android")
+    kotlin("kapt")
 }
 
 android {
@@ -94,6 +95,8 @@ dependencies {
     implementation(libs.androidx.window)
     implementation(libs.glide)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.foundation)
+
 
 
 //    implementation(libs.androidx.room.runtime)
@@ -104,6 +107,9 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
     annotationProcessor("androidx.room:room-compiler:$room_version")
-
     ksp("androidx.room:room-compiler:$room_version")
+
+    implementation(libs.hilt.android)
+    kapt("com.google.dagger:hilt-android-compiler:2.46")
+
 }

@@ -6,30 +6,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.Room
-import io.iskopasi.simplymotion.room.MDDatabase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import io.iskopasi.simplymotion.room.MDDao
 import io.iskopasi.simplymotion.room.MDLog
-import io.iskopasi.simplymotion.utils.e
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-
-class LogsModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class LogsModel @Inject constructor(
+    context: Application,
+    private val dao: MDDao
+) : AndroidViewModel(context) {
     var logs by mutableStateOf<List<MDLog>>(listOf())
-
-    private val room by lazy {
-        Room.databaseBuilder(
-            getApplication(),
-            MDDatabase::class.java, "md_db"
-        ).build()
-    }
 
     init {
         viewModelScope.launch {
-            room.logDao().getAll()
+            dao.getAll()
                 .flowOn(Dispatchers.IO).collect {
-                    "--> collecting ${it.size}".e
                     logs = it
                 }
         }

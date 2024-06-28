@@ -5,9 +5,11 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import dagger.hilt.android.AndroidEntryPoint
 import io.iskopasi.simplymotion.models.LogsModel
 import io.iskopasi.simplymotion.screens.LogScreen
 
+@AndroidEntryPoint
 class LogsActivity : ComponentActivity() {
     private val model: LogsModel by viewModels<LogsModel>()
 

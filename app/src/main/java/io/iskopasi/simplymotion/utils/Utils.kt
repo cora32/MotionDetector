@@ -297,3 +297,5 @@ fun Int.toRotation() = when (this) {
     Surface.ROTATION_270 -> 90
     else -> 0
 }
+
+val df: java.text.DateFormat by lazy { java.text.DateFormat.getDateTimeInstance() }

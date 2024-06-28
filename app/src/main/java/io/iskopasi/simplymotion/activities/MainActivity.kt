@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import dagger.hilt.android.AndroidEntryPoint
 import io.iskopasi.simplymotion.models.UIModel
 import io.iskopasi.simplymotion.screens.MainScreen
 import io.iskopasi.simplymotion.utils.e
@@ -24,7 +25,9 @@ import kotlinx.coroutines.launch
 
 
 object MainRoute
-object LogRoute
+//object LogRoute
+
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val uiModel: UIModel by viewModels()
     private val cameraPermissionRequest =
