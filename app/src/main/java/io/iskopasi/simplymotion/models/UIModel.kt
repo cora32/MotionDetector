@@ -27,6 +27,7 @@ import io.iskopasi.simplymotion.utils.OrientationListener
 import io.iskopasi.simplymotion.utils.PreferencesManager
 import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.IS_FRONT_KEY
 import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.SENSO_KEY
+import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.SHOW_DETECTION_KEY
 import io.iskopasi.simplymotion.utils.ServiceCommunicator
 import io.iskopasi.simplymotion.utils.e
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +40,10 @@ class UIModel @Inject constructor(
     context: Application,
     private val dao: MDDao
 ) : AndroidViewModel(context), DefaultLifecycleObserver {
+    private val sp by lazy {
+        PreferencesManager(context = context)
+    }
+
     var bitmap by mutableStateOf<Bitmap?>(null)
     var detectRectState by mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
     var isRecording by mutableStateOf(false)
@@ -48,10 +53,11 @@ class UIModel @Inject constructor(
     var isFront by mutableStateOf(false)
     var orientation by mutableIntStateOf(0)
     var isBrightnessUp = MutableStateFlow(false)
+    var showDetectionBitmap by mutableStateOf(sp.getBool(SHOW_DETECTION_KEY, false))
 
     private val resultCallback: ResultCallback =
-        { bitmap, detectRect ->
-//                uiModel.bitmap = bitmap
+        { detectBitmap, detectRect ->
+            bitmap = if (showDetectionBitmap) detectBitmap else null
 
             detectRectState = detectRect?.let {
                 androidx.compose.ui.geometry.Rect(
@@ -117,14 +123,15 @@ class UIModel @Inject constructor(
         }
     }
 
-    private val sp by lazy {
-        PreferencesManager(context = context)
-    }
-
 
     init {
         serviceCommunicator.sendMsg(MDCommand.REQUEST_STATE.name)
         orientationListener.enable()
+    }
+
+    fun setShowDetectionKey(value: Boolean) {
+        sp.saveBool(SHOW_DETECTION_KEY, value)
+        showDetectionBitmap = value
     }
 
     private fun logVideoStop() = viewModelScope.launch {

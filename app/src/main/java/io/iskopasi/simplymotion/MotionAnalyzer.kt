@@ -99,8 +99,8 @@ class MotionAnalyzer(
 
             val tasks = generateTasks(rotatedBitmap, workers, 1) { src, dst, chunk ->
                 blurMedianTask(src, dst, chunk)
-                blurMedianTask(dst, dst, chunk)
-                adaptiveThresholdTask(dst, dst, chunk, 255 * 255 * 100)
+//                blurMedianTask(dst, dst, chunk)
+                adaptiveThresholdTask(dst, dst, chunk, 255 * 255 * 90)
             }
             val results = pool.invokeAll(tasks)
             val finalBitmap = results[0].get()

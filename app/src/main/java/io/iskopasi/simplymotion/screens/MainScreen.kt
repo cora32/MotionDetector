@@ -6,7 +6,9 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateRectAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +34,7 @@ import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Timer10
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -60,8 +63,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -196,14 +201,14 @@ private fun UIComposable(
             },
             modifier = Modifier.fillMaxSize()
         )
-//            uiModel.bitmap?.let {
-//                Image(
-//                    bitmap = it.asImageBitmap(),
-//                    contentDescription = "",
-//                    modifier = Modifier.fillMaxSize(),
-//                    contentScale = ContentScale.FillBounds
-//                )
-//            }
+        uiModel.bitmap?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = "",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.FillBounds
+            )
+        }
         Box(
             modifier = Modifier
                 .height(120.dp)
@@ -388,7 +393,6 @@ private fun MenuComposable(
         mutableStateOf(uiModel.getSensitivity().toString())
     }
     val keyboardController = LocalSoftwareKeyboardController.current
-    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -427,7 +431,7 @@ private fun MenuComposable(
                             sensitivityTF = it
                             uiModel.saveSensitivity(it.toInt())
                         } else {
-                            sensitivityTF = "0"
+                            sensitivityTF = ""
                             uiModel.saveSensitivity(0)
                         }
                     },
@@ -448,6 +452,18 @@ private fun MenuComposable(
 ////                        }
 //                    }
                 )
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth()
+                        .clickable {
+                            uiModel.setShowDetectionKey(!uiModel.showDetectionBitmap)
+                        }) {
+                    Checkbox(checked = uiModel.showDetectionBitmap, onCheckedChange = {
+                        uiModel.setShowDetectionKey(!uiModel.showDetectionBitmap)
+                    })
+                    Text(stringResource(id = R.string.show_bitmap))
+                }
             }
             Button(
                 onClick = toLogs,
