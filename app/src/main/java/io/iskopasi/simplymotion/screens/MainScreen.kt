@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateRectAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -51,7 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
@@ -156,6 +157,10 @@ private fun UIComposable(
         label = ""
     )
 
+    val rect = uiModel.detectRectState?.let {
+        animateRectAsState(targetValue = it, label = "detection_box")
+    }?.value
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -164,6 +169,24 @@ private fun UIComposable(
             .pointerInput(Unit) {
                 detectTapGestures {
                     closeDrawer()
+                }
+            }
+            .drawWithContent {
+                drawContent()
+
+                rect?.let {
+                    drawRect(
+                        color = Color.Red,
+                        topLeft = Offset(
+                            it.left,
+                            it.top
+                        ),
+                        size = Size(
+                            it.width,
+                            it.height
+                        ),
+                        style = Stroke(5.0f)
+                    )
                 }
             }
     ) {
@@ -181,30 +204,6 @@ private fun UIComposable(
 //                    contentScale = ContentScale.FillBounds
 //                )
 //            }
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .drawBehind {
-                val rect = uiModel.detectRectState
-
-                rect?.let {
-                    drawRect(
-                        color = Color.Red,
-                        topLeft = Offset(
-                            rect.left.toFloat(),
-                            rect.top.toFloat()
-                        ),
-                        size = Size(
-                            rect
-                                .width()
-                                .toFloat(),
-                            rect
-                                .height()
-                                .toFloat()
-                        ),
-                        style = Stroke(5.0f)
-                    )
-                }
-            })
         Box(
             modifier = Modifier
                 .height(120.dp)

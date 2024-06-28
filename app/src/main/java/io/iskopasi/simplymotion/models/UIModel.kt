@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.Rect
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
@@ -41,7 +40,7 @@ class UIModel @Inject constructor(
     private val dao: MDDao
 ) : AndroidViewModel(context), DefaultLifecycleObserver {
     var bitmap by mutableStateOf<Bitmap?>(null)
-    var detectRectState by mutableStateOf<Rect?>(null)
+    var detectRectState by mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
     var isRecording by mutableStateOf(false)
     var isArmed by mutableStateOf(false)
     var timerValue by mutableStateOf<String?>(null)
@@ -54,7 +53,14 @@ class UIModel @Inject constructor(
         { bitmap, detectRect ->
 //                uiModel.bitmap = bitmap
 
-            detectRectState = detectRect
+            detectRectState = detectRect?.let {
+                androidx.compose.ui.geometry.Rect(
+                    detectRect.left.toFloat(),
+                    detectRect.top.toFloat(),
+                    detectRect.right.toFloat(),
+                    detectRect.bottom.toFloat()
+                )
+            }
         }
     private val serviceCommunicator by lazy {
         ServiceCommunicator("UIModel") { data, obj, comm ->
