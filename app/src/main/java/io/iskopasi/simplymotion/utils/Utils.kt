@@ -31,6 +31,8 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.InvalidMarkException
 import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.pow
 
 
 val Context.cameraManager: CameraManager?
@@ -296,6 +298,41 @@ fun Int.toRotation() = when (this) {
     Surface.ROTATION_180 -> 180
     Surface.ROTATION_270 -> 90
     else -> 0
+}
+
+fun getGaussKernel(): Array<Array<Float>> {
+    val kSize = 9
+    val alpha = 1f
+    val sigma = 0.3 * ((kSize - 1) * 0.5 - 1) + 0.8
+
+    fun gaussRow(index: Int): Array<Float> {
+        val result = Array(3) { 0f }
+
+        for (i in 0 until 3) {
+            val up = -(i + index * 3 - (kSize - 1) / 2.0).pow(2.0)
+            val down = (2.0 * sigma.pow(2.0))
+
+            result[i] = alpha * exp(up / down).toFloat()
+        }
+
+        return result
+    }
+
+    return Array(3) {
+        gaussRow(it)
+    }
+}
+
+fun Int.toABGR(): Int {
+    val EXCEPT_R_MASK = -0xff0001
+    val ONLY_R_MASK = EXCEPT_R_MASK.inv()
+    val EXCEPT_B_MASK = -0x100
+    val ONLY_B_MASK = EXCEPT_B_MASK.inv()
+
+    val r: Int = (this and ONLY_R_MASK) shr 16
+    val b: Int = this and ONLY_B_MASK
+
+    return (this and EXCEPT_R_MASK and EXCEPT_B_MASK) or (b shl 16) or r
 }
 
 val df: java.text.DateFormat by lazy { java.text.DateFormat.getDateTimeInstance() }

@@ -134,11 +134,16 @@ class MDCameraController(
             .setResolutionSelector(resolutionSelectorAnalyze)
             // Set initial target rotation, we will have to call service again if rotation changes
             // during the lifecycle of service use case
-            .setTargetRotation(Surface.ROTATION_90)
+//            .setTargetRotation(Surface.ROTATION_180)
             .build()
             // The analyzer can then be assigned to the instance
             .also {
-                motionAnalyzer = MotionAnalyzer(metrics.width(), metrics.height(), threshold)
+                motionAnalyzer = MotionAnalyzer(
+                    metrics.width(),
+                    metrics.height(),
+                    threshold,
+                    isFront
+                )
                 { bitmap, detectRect ->
                     resultCallback?.invoke(bitmap, detectRect)
 

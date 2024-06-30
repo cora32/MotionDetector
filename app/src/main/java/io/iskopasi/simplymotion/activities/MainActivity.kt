@@ -89,11 +89,6 @@ class MainActivity : ComponentActivity() {
 
         // Lock screen brightness
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-//        lifecycle.removeObserver(uiModel)
-//        lifecycle.addObserver(uiModel)
-//        uiModel.setupCamera(this, viewfinder.surfaceProvider)
-
         uiModel.startService(this)
 
         lifecycleScope.launch {

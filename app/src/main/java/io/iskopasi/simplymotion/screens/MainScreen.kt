@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateRectAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -205,8 +206,10 @@ private fun UIComposable(
             Image(
                 bitmap = it.asImageBitmap(),
                 contentDescription = "",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.FillBounds
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(6.dp, color = Color.Black),
+                contentScale = ContentScale.FillBounds,
             )
         }
         Box(
