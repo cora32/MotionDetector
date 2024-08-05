@@ -2,5 +2,5 @@
 
 Minimum required API: 24
 
-![Detection1](output.gif)
+![Detection1](output.mp4)
 
