@@ -2,4 +2,6 @@
 
 Minimum required API: 24
 
-![Detection](output.gif)
+| *gif1*            | 
+|-------------------|
+| ![UI](output.gif) |
