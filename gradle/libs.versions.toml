@@ -1,5 +1,5 @@
 [versions]
-agp = "8.5.0"
+agp = "8.5.1"
 cameraCore = "1.3.4"
 cameraVideo = "1.4.0-beta02"
 concurrentFuturesKtx = "1.2.0"

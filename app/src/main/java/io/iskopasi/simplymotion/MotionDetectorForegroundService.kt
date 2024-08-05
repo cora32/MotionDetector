@@ -23,7 +23,6 @@ import io.iskopasi.simplymotion.utils.PreferencesManager
 import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.IS_FRONT_KEY
 import io.iskopasi.simplymotion.utils.PreferencesManager.Companion.SENSO_KEY
 import io.iskopasi.simplymotion.utils.ServiceCommunicator
-import io.iskopasi.simplymotion.utils.e
 import io.iskopasi.simplymotion.utils.notificationManager
 import kotlinx.coroutines.launch
 
@@ -111,8 +110,6 @@ class MotionDetectorForegroundService : LifecycleService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        "---> onStartCommand ".e
-
         val notificationId = 123
         val channelId = getChannel()
         val notification = NotificationCompat.Builder(this, channelId).apply {
