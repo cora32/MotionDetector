@@ -2,5 +2,5 @@
 
 Minimum required API: 24
 
-![Detection1](output.mp4)
+<video src='output.mp4' width=180/> 
 
