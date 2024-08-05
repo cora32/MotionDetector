@@ -2,6 +2,6 @@
 
 Minimum required API: 24
 
-| *gif1*            | 
+| *gif (4mb)*       | 
 |-------------------|
 | ![UI](output.gif) |
