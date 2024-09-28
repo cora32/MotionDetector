@@ -18,6 +18,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import io.iskopasi.galleryview.GalleryModel
+import io.iskopasi.galleryview.GalleryModelFactory
 import io.iskopasi.simplymotion.models.UIModel
 import io.iskopasi.simplymotion.screens.MainScreen
 import io.iskopasi.simplymotion.utils.e
@@ -27,13 +29,20 @@ import kotlinx.coroutines.launch
 object MainRoute
 //object LogRoute
 
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val uiModel: UIModel by viewModels()
+    private val galleryModel: GalleryModel by viewModels {
+        GalleryModelFactory(
+            this.application,
+            filesDir
+        )
+    }
     private val cameraPermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { resultMap ->
             if (resultMap.values.all { it }) {
-
+                uiModel.startService(this)
             } else {
                 Toast.makeText(this, "We need your permission", Toast.LENGTH_LONG)
             }
@@ -48,12 +57,18 @@ class MainActivity : ComponentActivity() {
             ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
                 context, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
+//                    && ContextCompat.checkSelfPermission(
+//                context, Manifest.permission.WRITE_EXTERNAL_STORAGE
+//            ) == PackageManager.PERMISSION_GRANTED
         } else {
             ContextCompat.checkSelfPermission(
                 context, Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
                 context, Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED
+//                    && ContextCompat.checkSelfPermission(
+//                context, Manifest.permission.WRITE_EXTERNAL_STORAGE
+//            ) == PackageManager.PERMISSION_GRANTED
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,7 +80,7 @@ class MainActivity : ComponentActivity() {
                     arrayOf(
                         Manifest.permission.CAMERA,
                         Manifest.permission.RECORD_AUDIO,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
                         Manifest.permission.POST_NOTIFICATIONS,
                     )
                 )
@@ -74,9 +89,28 @@ class MainActivity : ComponentActivity() {
                     arrayOf(
                         Manifest.permission.CAMERA,
                         Manifest.permission.RECORD_AUDIO,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+//                        Manifest.permission.WRITE_EXTERNAL_STORAGE
                     )
                 )
+            }
+        } else {
+            uiModel.startService(this)
+            galleryModel.onDelete {
+                uiModel.logDelete()
+            }
+            galleryModel.onClick { file ->
+                uiModel.requestVideoPlay(file, this)
+            }
+            galleryModel.start()
+
+            lifecycleScope.launch {
+                uiModel.isBrightnessUp.collect { isBrightnessUp ->
+                    if (isBrightnessUp) {
+                        brightnessUp()
+                    } else {
+                        brightnessDown()
+                    }
+                }
             }
         }
 
@@ -89,17 +123,6 @@ class MainActivity : ComponentActivity() {
 
         // Lock screen brightness
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        uiModel.startService(this)
-
-        lifecycleScope.launch {
-            uiModel.isBrightnessUp.collect { isBrightnessUp ->
-                if (isBrightnessUp) {
-                    brightnessUp()
-                } else {
-                    brightnessDown()
-                }
-            }
-        }
 
         setContent {
             // Looks like Compose Navigation does not support previous screen retaining
@@ -110,6 +133,7 @@ class MainActivity : ComponentActivity() {
                 composable(MainRoute.toString()) {
                     MainScreen(
                         uiModel,
+                        galleryModel,
                         toLogs = {
                             // Using startActivity because Navigation API can't retain
                             // previous screen

@@ -4,4 +4,5 @@
     <string name="go_to_logs">Logs</string>
     <string name="ago">%s ago</string>
     <string name="show_bitmap">Show detection bitmap</string>
+    <string name="latest">Latest captures:</string>
 </resources>

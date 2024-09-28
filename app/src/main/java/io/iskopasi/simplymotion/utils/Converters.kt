@@ -13,4 +13,10 @@ class Converters {
     fun dateToTimestamp(date: Date?): Long? {
         return date?.time?.toLong()
     }
+
+//    @TypeConverter
+//    fun toLogType(value: Int) = enumValues<LogType>()[value]
+//
+//    @TypeConverter
+//    fun fromLogType(value: LogType) = value.ordinal
 }

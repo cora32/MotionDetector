@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -79,6 +80,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import io.iskopasi.galleryview.GalleryComposable
+import io.iskopasi.galleryview.GalleryModel
 import io.iskopasi.simplymotion.R
 import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.models.UIModel
@@ -96,6 +99,7 @@ private lateinit var focusManager: FocusManager
 @Composable
 fun MainScreen(
     uiModel: UIModel,
+    galleryModel: GalleryModel,
     toLogs: () -> Unit
 ) {
     val context = LocalContext.current
@@ -140,6 +144,7 @@ fun MainScreen(
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         UIComposable(
                             uiModel,
+                            galleryModel,
                             innerPadding,
                             viewfinder,
                             toLogs
@@ -154,6 +159,7 @@ fun MainScreen(
 @Composable
 private fun UIComposable(
     uiModel: UIModel,
+    galleryModel: GalleryModel,
     innerPadding: PaddingValues,
     viewfinder: PreviewView,
     toLogs: () -> Unit,
@@ -163,222 +169,113 @@ private fun UIComposable(
         label = ""
     )
 
-    val rect = uiModel.detectRectState?.let {
-        animateRectAsState(targetValue = it, label = "detection_box")
-    }?.value
+    Box(modifier = Modifier.fillMaxSize()) {
+        DetectBoxDrawerComposable(uiModel, viewfinder, innerPadding)
+        ContentComposable(uiModel, galleryModel, rotation)
+    }
+}
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-            .background(Color.Black)
-            .pointerInput(Unit) {
-                detectTapGestures {
-                    closeDrawer()
-                }
-            }
-            .drawWithContent {
-                drawContent()
-
-                rect?.let {
-                    drawRect(
-                        color = Color.Red,
-                        topLeft = Offset(
-                            it.left,
-                            it.top
-                        ),
-                        size = Size(
-                            it.width,
-                            it.height
-                        ),
-                        style = Stroke(5.0f)
-                    )
-                }
-            }
-    ) {
-        AndroidView(
-            factory = {
-                viewfinder
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-        uiModel.bitmap?.let {
-            Image(
-                bitmap = it.asImageBitmap(),
-                contentDescription = "",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .border(6.dp, color = Color.Black),
-                contentScale = ContentScale.FillBounds,
-            )
-        }
-        Box(
+@Composable
+fun Controls(uiModel: UIModel, rotation: Float) {
+    if (uiModel.isArmed) {
+        Row(
             modifier = Modifier
-                .height(120.dp)
                 .fillMaxWidth()
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.3f),
-                            Color.Black.copy(alpha = 0.2f),
                             Color.Black.copy(alpha = 0.0f),
+                            Color.Black.copy(alpha = 0.2f),
+                            Color.Black.copy(alpha = 0.3f),
                         )
                     )
                 )
+                .padding(bottom = 72.dp, top = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             IconButton(
                 modifier = Modifier
-                    .padding(top = 56.dp, end = 16.dp)
-                    .size(48.dp)
-                    .align(Alignment.TopEnd),
+                    .size(48.dp),
 
                 onClick = {
-                    scope.launch { drawerState.open() }
+                    uiModel.disarm()
                 }) {
                 Icon(
-                    Icons.Rounded.Menu,
-                    "Menu",
+                    Icons.Rounded.Clear,
+                    "Disarm",
                     modifier = Modifier
                         .rotate(rotation),
                     tint = Color.White.copy(alpha = 0.7f)
                 )
             }
         }
-        if (uiModel.timerValue != null) Box(
+    } else {
+        if (!uiModel.isArming) Row(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = .5f))
-        ) {
-            Crossfade(
-                targetState = uiModel.timerValue, label = uiModel.timerValue.toString(),
-                modifier = Modifier
-                    .align(Alignment.Center)
-            ) {
-                it?.let {
-                    Text(
-                        modifier = Modifier
-                            .rotate(rotation),
-                        text = it,
-                        color = Color.White,
-                        fontSize = 32.sp
-                    )
-                }
-
-            }
-        }
-        if (uiModel.isArmed) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.0f),
-                                Color.Black.copy(alpha = 0.2f),
-                                Color.Black.copy(alpha = 0.3f),
-                            )
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.0f),
+                            Color.Black.copy(alpha = 0.2f),
+                            Color.Black.copy(alpha = 0.3f),
                         )
                     )
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 72.dp, top = 24.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                IconButton(
-                    modifier = Modifier
-                        .size(48.dp),
-
-                    onClick = {
-                        uiModel.disarm()
-                    }) {
-                    Icon(
-                        Icons.Rounded.Clear,
-                        "Disarm",
-                        modifier = Modifier
-                            .rotate(rotation),
-                        tint = Color.White.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        } else {
-            if (!uiModel.isArming) Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.0f),
-                                Color.Black.copy(alpha = 0.2f),
-                                Color.Black.copy(alpha = 0.3f),
-                            )
-                        )
-                    )
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 72.dp, top = 24.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                IconButton(
-                    modifier = Modifier
-                        .size(48.dp),
-
-                    onClick = {
-                        uiModel.arm()
-                    }) {
-                    Icon(
-                        Icons.Rounded.Security,
-                        "Arm",
-                        modifier = Modifier
-                            .rotate(rotation),
-                        tint = Color.White.copy(alpha = 0.7f)
-                    )
-                }
-
-                IconButton(
-                    modifier = Modifier
-                        .size(48.dp),
-
-                    onClick = {
-                        uiModel.armDelayed(10000L)
-                        uiModel.isArming = true
-                    }) {
-                    Icon(
-                        Icons.Rounded.Timer10,
-                        "Arm in 10 seconds",
-                        modifier = Modifier
-                            .rotate(rotation),
-                        tint = Color.White.copy(alpha = 0.7f)
-                    )
-                }
-
-                IconButton(
-                    modifier = Modifier
-                        .size(48.dp),
-
-                    onClick = {
-                        uiModel.switchCamera()
-                    }) {
-                    Icon(
-                        if (uiModel.isFront) Icons.Rounded.CameraFront else Icons.Rounded.CameraRear,
-                        "Front/back camera",
-                        modifier = Modifier
-                            .rotate(rotation),
-                        tint = Color.White.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        }
-
-        if (uiModel.isRecording) Box(
-            modifier = Modifier
-                .padding(top = 56.dp, start = 32.dp, end = 32.dp)
-                .size(32.dp)
-                .clip(
-                    RoundedCornerShape(32.dp)
                 )
-                .background(Color.Red)
-                .align(Alignment.TopStart)
-        )
+                .padding(bottom = 72.dp, top = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            IconButton(
+                modifier = Modifier
+                    .size(48.dp),
+
+                onClick = {
+                    uiModel.arm()
+                }) {
+                Icon(
+                    Icons.Rounded.Security,
+                    "Arm",
+                    modifier = Modifier
+                        .rotate(rotation),
+                    tint = Color.White.copy(alpha = 0.7f)
+                )
+            }
+
+            IconButton(
+                modifier = Modifier
+                    .size(48.dp),
+
+                onClick = {
+                    uiModel.armDelayed(10000L)
+                    uiModel.isArming = true
+                }) {
+                Icon(
+                    Icons.Rounded.Timer10,
+                    "Arm in 10 seconds",
+                    modifier = Modifier
+                        .rotate(rotation),
+                    tint = Color.White.copy(alpha = 0.7f)
+                )
+            }
+
+            IconButton(
+                modifier = Modifier
+                    .size(48.dp),
+
+                onClick = {
+                    uiModel.switchCamera()
+                }) {
+                Icon(
+                    if (uiModel.isFront) Icons.Rounded.CameraFront else Icons.Rounded.CameraRear,
+                    "Front/back camera",
+                    modifier = Modifier
+                        .rotate(rotation),
+                    tint = Color.White.copy(alpha = 0.7f)
+                )
+            }
+        }
     }
 }
 
@@ -491,5 +388,154 @@ fun Label(text: String, modifier: Modifier = Modifier) {
         text = text,
         fontSize = 25.sp,
         modifier = modifier
+    )
+}
+
+@Composable
+fun BoxScope.DetectBoxDrawerComposable(
+    uiModel: UIModel,
+    viewfinder: PreviewView,
+    innerPadding: PaddingValues
+) {
+    val rect = uiModel.detectRectState?.let {
+        animateRectAsState(targetValue = it, label = "detection_box")
+    }?.value
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+            .background(Color.Black)
+            .pointerInput(Unit) {
+                detectTapGestures {
+                    closeDrawer()
+                }
+            }
+            .drawWithContent {
+                drawContent()
+
+                rect?.let {
+                    drawRect(
+                        color = Color.Red,
+                        topLeft = Offset(
+                            it.left,
+                            it.top
+                        ),
+                        size = Size(
+                            it.width,
+                            it.height
+                        ),
+                        style = Stroke(5.0f)
+                    )
+                }
+            }
+    ) {
+        AndroidView(
+            factory = {
+                viewfinder
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+        uiModel.bitmap?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = "",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(6.dp, color = Color.Black),
+                contentScale = ContentScale.FillBounds,
+            )
+        }
+    }
+}
+
+@Composable
+fun BoxScope.ContentComposable(uiModel: UIModel, galleryModel: GalleryModel, rotation: Float) {
+    Box(
+        modifier = Modifier
+            .height(120.dp)
+            .fillMaxWidth()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = 0.4f),
+                        Color.Black.copy(alpha = 0.3f),
+                        Color.Black.copy(alpha = 0.3f),
+                        Color.Black.copy(alpha = 0.0f),
+                    )
+                )
+            )
+    ) {
+        IconButton(
+            modifier = Modifier
+                .padding(top = 56.dp, end = 16.dp)
+                .size(48.dp)
+                .align(Alignment.TopEnd),
+
+            onClick = {
+                scope.launch { drawerState.open() }
+            }) {
+            Icon(
+                Icons.Rounded.Menu,
+                "Menu",
+                modifier = Modifier
+                    .rotate(rotation),
+                tint = Color.White.copy(alpha = 0.7f)
+            )
+        }
+    }
+    if (uiModel.timerValue != null) Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = .5f))
+    ) {
+        Crossfade(
+            targetState = uiModel.timerValue, label = uiModel.timerValue.toString(),
+            modifier = Modifier
+                .align(Alignment.Center)
+        ) {
+            it?.let {
+                Text(
+                    modifier = Modifier
+                        .rotate(rotation),
+                    text = it,
+                    color = Color.White,
+                    fontSize = 32.sp
+                )
+            }
+
+        }
+    }
+
+    Column(modifier = Modifier.align(Alignment.BottomCenter)) {
+        Box(
+            modifier = Modifier
+                .background(
+                    color = Color.Black.copy(alpha = 0.1f)
+                )
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            Column {
+                Text(
+                    text = stringResource(id = R.string.latest),
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                GalleryComposable(galleryModel)
+            }
+        }
+        Controls(uiModel, rotation)
+    }
+
+    if (uiModel.isRecording) Box(
+        modifier = Modifier
+            .padding(top = 56.dp, start = 32.dp, end = 32.dp)
+            .size(32.dp)
+            .clip(
+                RoundedCornerShape(32.dp)
+            )
+            .background(Color.Red)
+            .align(Alignment.TopStart)
     )
 }

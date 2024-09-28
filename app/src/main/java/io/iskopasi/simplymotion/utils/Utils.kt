@@ -20,6 +20,8 @@ import android.view.Surface
 import android.view.WindowManager
 import androidx.camera.core.ImageProxy
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import io.iskopasi.simplymotion.utils.RealPathUtil.getRealPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -85,6 +87,16 @@ fun bg(block: suspend (CoroutineScope) -> Unit): Job = CoroutineScope(Dispatcher
 fun ui(block: suspend CoroutineScope.() -> Unit): Job = CoroutineScope(Dispatchers.Main).launch {
     block(this)
 }
+
+fun ViewModel.bg(block: suspend (CoroutineScope) -> Unit): Job =
+    viewModelScope.launch(Dispatchers.IO) {
+        block(this)
+    }
+
+fun ViewModel.ui(block: suspend CoroutineScope.() -> Unit): Job =
+    viewModelScope.launch(Dispatchers.Main) {
+        block(this)
+    }
 
 val Context.windowManager: WindowManager?
     get() = ContextCompat.getSystemService(this, WindowManager::class.java)

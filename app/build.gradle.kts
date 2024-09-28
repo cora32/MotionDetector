@@ -1,11 +1,12 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.compose.compiler)
+
     id("com.google.devtools.ksp") version "2.0.0-1.0.22" apply true
 
     id("com.google.dagger.hilt.android")
     kotlin("kapt")
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" // this version matches your Kotlin version
 }
 
 android {
@@ -105,7 +106,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 
     implementation(libs.androidx.window)
-    implementation(libs.glide)
+//    implementation(libs.glide)
+    implementation(libs.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.foundation)
 
@@ -124,4 +126,5 @@ dependencies {
     implementation(libs.hilt.android)
     kapt("com.google.dagger:hilt-android-compiler:2.46")
 
+    implementation(project(":galleryview"))
 }

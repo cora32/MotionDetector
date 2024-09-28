@@ -22,11 +22,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.iskopasi.simplymotion.R
 import io.iskopasi.simplymotion.models.LogsModel
+import io.iskopasi.simplymotion.room.LogType
 import io.iskopasi.simplymotion.room.MDLog
 import io.iskopasi.simplymotion.ui.theme.bg1
 import io.iskopasi.simplymotion.ui.theme.text1
 import io.iskopasi.simplymotion.ui.theme.text2
+import io.iskopasi.simplymotion.ui.theme.textGreen
 import io.iskopasi.simplymotion.ui.theme.textRed
+import io.iskopasi.simplymotion.ui.theme.textYellow
 import io.iskopasi.simplymotion.utils.df
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -87,7 +90,11 @@ fun LogRow(mdLog: MDLog) {
             )
             Text(
                 text = stringResource(id = R.string.ago, elapsed),
-                color = textRed,
+                color = when (mdLog.type) {
+                    LogType.START -> textGreen
+                    LogType.STOP -> textRed
+                    LogType.DELETED -> textYellow
+                },
                 fontSize = 13.sp,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
