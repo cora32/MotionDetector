@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "SimplyMotion"
 include(":app")
-include(":galleryview")
+include(":gallery_view_module")

@@ -126,5 +126,5 @@ dependencies {
     implementation(libs.hilt.android)
     kapt("com.google.dagger:hilt-android-compiler:2.46")
 
-    implementation(project(":galleryview"))
+    implementation(project(":gallery_view_module"))
 }
