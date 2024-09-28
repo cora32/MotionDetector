@@ -1,0 +1,3 @@
+[submodule "gallery_view_module"]
+	path = gallery_view_module
+	url = https://github.com/cora32/gallery_view_module.git
