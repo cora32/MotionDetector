@@ -68,33 +68,39 @@ class RecorderController(
     }
 
 
-    fun start() {
-        if (recording == null) {
-            val pendingRecording = getNewPendingRecording()
+    private fun startCapturing() {
+        val pendingRecording = getNewPendingRecording()
 
-            recording =
-                pendingRecording.start(ContextCompat.getMainExecutor(context.applicationContext)) { event ->
+        recording =
+            pendingRecording.start(ContextCompat.getMainExecutor(context.applicationContext)) { event ->
 
                 when (event) {
-                        is VideoRecordEvent.Start -> {
-                            eventListener(MDEvent.VIDEO_START, null)
-                        }
+                    is VideoRecordEvent.Start -> {
+                        eventListener(MDEvent.VIDEO_START, null)
+                    }
 
-                        is VideoRecordEvent.Finalize -> {
-                            finalize()
+                    is VideoRecordEvent.Finalize -> {
+                        finalize()
 
-                            if (event.hasError()) {
-                                Toast.makeText(
-                                    context,
-                                    "Failed to save video: ${event.error}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
+                        if (event.hasError()) {
+                            Toast.makeText(
+                                context,
+                                "Failed to save video: ${event.error}",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 }
+            }
+    }
+
+    fun startOrContinueCapturing() {
+        // If no recording is currently ongoing, start a new capturing
+        if (recording == null) {
+            startCapturing()
         }
 
+        // A job to stop recording and save video after several times passes
         finisherJob?.cancel()
         finisherJob = bg {
             delay(3000L)
