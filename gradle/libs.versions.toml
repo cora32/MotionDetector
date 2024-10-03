@@ -1,5 +1,6 @@
 [versions]
 agp = "8.6.1"
+androidxRoomCompiler = "2.6.1"
 cameraCore = "1.3.4"
 cameraVideo = "1.4.0-beta02"
 compiler = "4.16.0"
@@ -8,7 +9,8 @@ concurrentFuturesKtx = "1.2.0"
 datastorePreferences = "1.1.1"
 foundation = "1.6.8"
 glide = "4.16.0"
-hiltAndroid = "2.46"
+hiltAndroid = "2.51.1"
+hiltAndroidCompiler = "2.51.1"
 kotlin = "2.0.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -23,7 +25,9 @@ navigationCompose = "2.7.7"
 navigationFragmentKtx = "2.7.7"
 navigationUiKtx = "2.7.7"
 roomCompiler = "2.6.1"
+roomKtx = "2.6.1"
 roomRuntime = "2.6.1"
+roomRuntimeVersion = "2.6.1"
 window = "1.3.0"
 loader = "1.1.0"
 lifecycleService = "2.8.2"
@@ -45,12 +49,15 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 androidx-navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
 androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigationUiKtx" }
 androidx-room-compiler = { module = "androidx.room:room-compiler" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomKtx" }
+androidx-room-room-compiler2 = { module = "androidx.room:room-compiler", version.ref = "androidxRoomCompiler" }
 androidx-room-runtime = { module = "androidx.room:room-runtime" }
 androidx-window = { module = "androidx.window:window", version.ref = "window" }
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "compiler" }
 compose = { module = "com.github.bumptech.glide:compose", version.ref = "compose" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
+hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroidCompiler" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -69,7 +76,15 @@ androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-s
 ksp = { module = "com.github.bumptech.glide:ksp", version.ref = "ksp" }
 room-compiler = { module = "androidx.room:room-compiler" }
 androidx-ui-android = { group = "androidx.compose.ui", name = "ui-android", version.ref = "uiAndroid" }
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntimeVersion" }
+hilt = { group = 'com.google.dagger', name = 'hilt-android', version = '2.51.1' }
+androidx-hilt = { group = 'androidx.hilt', name = 'hilt-navigation-compose', version = '1.2.0' }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version = "2.0.0-1.0.23" }
+dagger-hilt = { id = "com.google.dagger.hilt.android", version = "2.51.1" }

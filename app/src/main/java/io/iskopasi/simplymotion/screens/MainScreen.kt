@@ -80,8 +80,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import io.iskopasi.galleryview.GalleryComposable
+import io.iskopasi.galleryview.ClearButton
 import io.iskopasi.galleryview.GalleryModel
+import io.iskopasi.galleryview.HorizontalGalleryView
 import io.iskopasi.simplymotion.R
 import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.models.UIModel
@@ -100,7 +101,8 @@ private lateinit var focusManager: FocusManager
 fun MainScreen(
     uiModel: UIModel,
     galleryModel: GalleryModel,
-    toLogs: () -> Unit
+    toLogs: () -> Unit,
+    toGallery: () -> Unit,
 ) {
     val context = LocalContext.current
     drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -137,7 +139,7 @@ fun MainScreen(
                     drawerState = drawerState,
                     drawerContent = {
                         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                            MenuComposable(uiModel, toLogs)
+                            MenuComposable(uiModel, toLogs, toGallery)
                         }
                     },
                 ) {
@@ -287,7 +289,8 @@ private fun closeDrawer() {
 @Composable
 private fun MenuComposable(
     uiModel: UIModel,
-    toLogs: () -> Unit
+    toLogs: () -> Unit,
+    toGallery: () -> Unit,
 ) {
     var sensitivityTF by rememberSaveable {
         mutableStateOf(uiModel.getSensitivity().toString())
@@ -377,6 +380,19 @@ private fun MenuComposable(
                 shape = RectangleShape
             ) {
                 Label(stringResource(id = R.string.go_to_logs))
+            }
+            Button(
+                onClick = toGallery,
+                modifier = Modifier
+                    .height(75.dp)
+                    .fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = bg1,
+                    contentColor = text1
+                ),
+                shape = RectangleShape
+            ) {
+                Label(stringResource(id = R.string.go_to_gallery))
             }
         }
     }
@@ -503,7 +519,6 @@ fun BoxScope.ContentComposable(uiModel: UIModel, galleryModel: GalleryModel, rot
                     fontSize = 32.sp
                 )
             }
-
         }
     }
 
@@ -516,13 +531,21 @@ fun BoxScope.ContentComposable(uiModel: UIModel, galleryModel: GalleryModel, rot
                 .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
             Column {
-                Text(
-                    text = stringResource(id = R.string.latest),
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                GalleryComposable(galleryModel)
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.latest),
+                        color = Color.White,
+                        fontSize = 13.sp,
+                    )
+                    ClearButton(galleryModel)
+                }
+                HorizontalGalleryView(galleryModel, 100.dp)
             }
         }
         Controls(uiModel, rotation)

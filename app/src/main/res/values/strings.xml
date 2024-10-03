@@ -5,4 +5,6 @@
     <string name="ago">%s ago</string>
     <string name="show_bitmap">Show detection bitmap</string>
     <string name="latest">Latest captures:</string>
+    <string name="go_to_gallery">Gallery</string>
+    <string name="clear">Clear</string>
 </resources>

@@ -11,16 +11,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.iskopasi.simplymotion.BuildConfig
 import io.iskopasi.simplymotion.MotionDetectorForegroundService
 import io.iskopasi.simplymotion.ResultCallback
-import io.iskopasi.simplymotion.activities.MainActivity
 import io.iskopasi.simplymotion.controllers.MDCameraController
 import io.iskopasi.simplymotion.controllers.MDCommand
 import io.iskopasi.simplymotion.controllers.MDEvent
@@ -36,7 +33,6 @@ import io.iskopasi.simplymotion.utils.ServiceCommunicator
 import io.iskopasi.simplymotion.utils.e
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import java.io.File
 import java.util.Date
 import javax.inject.Inject
 
@@ -148,30 +144,6 @@ class UIModel @Inject constructor(
                 type = LogType.STOP
             )
         )
-    }
-
-    fun logDelete() = viewModelScope.launch {
-        dao.insert(
-            MDLog(
-                uid = 0,
-                text = "Video deleted",
-                date = Date(),
-                type = LogType.DELETED
-            )
-        )
-    }
-
-    fun requestVideoPlay(file: File, activity: MainActivity) {
-        val uri = FileProvider.getUriForFile(
-            activity, "${BuildConfig.APPLICATION_ID}.provider", file
-        )
-        // Launch external activity via intent to play video recorded using our provider
-        ContextCompat.startActivity(activity, Intent().apply {
-            action = Intent.ACTION_VIEW
-//            type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension)
-            data = uri
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP
-        }, null)
     }
 
     private fun logMotionDetectionStart() = viewModelScope.launch {

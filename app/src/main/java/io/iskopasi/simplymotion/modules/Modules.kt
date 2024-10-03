@@ -7,6 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.iskopasi.simplymotion.models.GeneralRepo
 import io.iskopasi.simplymotion.room.MDDao
 import io.iskopasi.simplymotion.room.MDDatabase
 import javax.inject.Singleton
@@ -29,5 +30,11 @@ class HiltModules {
     @Singleton
     fun provideDao(db: MDDatabase): MDDao {
         return db.mdDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRepo(dao: MDDao): GeneralRepo {
+        return GeneralRepo(dao)
     }
 }

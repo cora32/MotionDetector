@@ -1,10 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.ksp)
 
-    id("com.google.devtools.ksp") version "2.0.0-1.0.22" apply true
-
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.dagger.hilt)
     kotlin("kapt")
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" // this version matches your Kotlin version
 }
@@ -124,7 +123,7 @@ dependencies {
     ksp("androidx.room:room-compiler:$room_version")
 
     implementation(libs.hilt.android)
-    kapt("com.google.dagger:hilt-android-compiler:2.46")
+    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
 
     implementation(project(":gallery_view_module"))
 }

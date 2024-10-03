@@ -20,10 +20,12 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import io.iskopasi.galleryview.GalleryModel
 import io.iskopasi.galleryview.GalleryModelFactory
+import io.iskopasi.simplymotion.models.GeneralRepo
 import io.iskopasi.simplymotion.models.UIModel
 import io.iskopasi.simplymotion.screens.MainScreen
 import io.iskopasi.simplymotion.utils.e
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 
 object MainRoute
@@ -32,6 +34,8 @@ object MainRoute
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var repo: GeneralRepo
     private val uiModel: UIModel by viewModels()
     private val galleryModel: GalleryModel by viewModels {
         GalleryModelFactory(
@@ -96,10 +100,10 @@ class MainActivity : ComponentActivity() {
         } else {
             uiModel.startService(this)
             galleryModel.onDelete {
-                uiModel.logDelete()
+                repo.logDelete()
             }
             galleryModel.onClick { file ->
-                uiModel.requestVideoPlay(file, this)
+                repo.requestVideoPlay(file, this)
             }
             galleryModel.start()
 
@@ -153,6 +157,13 @@ class MainActivity : ComponentActivity() {
 //                                }
 //
 //                            )
+                        },
+                        toGallery = {
+                            ContextCompat.startActivity(
+                                this@MainActivity,
+                                Intent(this@MainActivity, GalleryActivity::class.java),
+                                null
+                            )
                         })
                 }
 //                composable(LogRoute.toString()) { LogScreen(uiModel) }
