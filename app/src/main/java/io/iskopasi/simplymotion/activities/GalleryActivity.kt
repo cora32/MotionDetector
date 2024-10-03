@@ -69,4 +69,10 @@ class GalleryActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        galleryModel.onDestroy()
+    }
 }

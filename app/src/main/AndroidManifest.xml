@@ -40,6 +40,13 @@
         <activity
             android:name=".activities.LogsActivity"
             android:exported="false"
+            android:launchMode="singleInstance"
+            android:theme="@style/Theme.SimplyMotion" />
+
+        <activity
+            android:name=".activities.GalleryActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
             android:theme="@style/Theme.SimplyMotion" />
 
         <service

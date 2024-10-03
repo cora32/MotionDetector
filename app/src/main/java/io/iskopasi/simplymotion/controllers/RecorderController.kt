@@ -83,13 +83,13 @@ class RecorderController(
                         is VideoRecordEvent.Finalize -> {
                             finalize()
 
-                            val msg = if (!event.hasError()) {
-                                "Video saved: ${event.outputResults.outputUri}".e
-                            } else {
-                                "Failed to save video: ${event.error}".e
+                            if (event.hasError()) {
+                                Toast.makeText(
+                                    context,
+                                    "Failed to save video: ${event.error}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
-
-                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
