@@ -2,6 +2,6 @@
 
 Minimum required API: 24
 
-| *gif (8mb)*           | 
+| *gif (5mb)*           | 
 |-----------------------|
-| ![UI](sm_output1.gif) |
+| ![UI](sm_output2.gif) |
