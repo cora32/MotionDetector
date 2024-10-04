@@ -136,8 +136,6 @@ class MainActivity : ComponentActivity() {
             NavHost(navController = navController, startDestination = MainRoute.toString()) {
                 composable(MainRoute.toString()) {
                     MainScreen(
-                        uiModel,
-                        galleryModel,
                         toLogs = {
                             // Using startActivity because Navigation API can't retain
                             // previous screen

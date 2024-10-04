@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.iskopasi.galleryview.ClearButton
 import io.iskopasi.galleryview.GalleryModel
 import io.iskopasi.galleryview.HorizontalGalleryView
@@ -99,8 +100,8 @@ private lateinit var focusManager: FocusManager
 
 @Composable
 fun MainScreen(
-    uiModel: UIModel,
-    galleryModel: GalleryModel,
+    uiModel: UIModel = viewModel(),
+    galleryModel: GalleryModel = viewModel(),
     toLogs: () -> Unit,
     toGallery: () -> Unit,
 ) {

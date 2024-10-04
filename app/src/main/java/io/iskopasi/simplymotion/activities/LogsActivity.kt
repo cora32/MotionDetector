@@ -22,7 +22,7 @@ class LogsActivity : ComponentActivity() {
         )
 
         setContent {
-            LogScreen(model = model)
+            LogScreen()
         }
     }
 }

@@ -5,7 +5,7 @@ plugins {
 
     alias(libs.plugins.dagger.hilt)
     kotlin("kapt")
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" // this version matches your Kotlin version
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
 }
 
 android {
@@ -107,7 +107,7 @@ dependencies {
     implementation(libs.androidx.window)
 //    implementation(libs.glide)
     implementation(libs.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
+//    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.foundation)
 
 

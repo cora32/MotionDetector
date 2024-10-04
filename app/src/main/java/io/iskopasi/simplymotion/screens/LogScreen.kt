@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.iskopasi.simplymotion.R
 import io.iskopasi.simplymotion.models.LogsModel
 import io.iskopasi.simplymotion.room.LogType
@@ -34,7 +35,7 @@ import io.iskopasi.simplymotion.utils.df
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun LogScreen(model: LogsModel) {
+fun LogScreen(model: LogsModel = viewModel()) {
     Box(
         modifier = Modifier
             .background(bg1)
